@@ -32,6 +32,7 @@ uvicorn = {extras = ["standard"], version = "^0.34.0"}
 
 # Security and Encryption
 cryptography = "^44.0.0"
+pyjwt = {extras = ["crypto"], version = "^2.9.0"}
 
 # Async and HTTP
 httpx = "^0.28.1"

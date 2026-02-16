@@ -59,6 +59,10 @@ class Settings(BaseSettings):
         default="https://authorization.cerner.com/tenants/ec2458f2-1e24-41c8-b71b-0e701af7583d/protocols/oauth2/profiles/smart-v1/token",  # noqa: E501
         description="Oracle Health OAuth token endpoint",
     )
+    oracle_private_key_path: str = Field(
+        default="",
+        description="Path to JWT private key for Oracle Health backend services auth",
+    )
 
     # Vector Database (Qdrant)
     qdrant_url: str = Field(
