@@ -1,0 +1,88 @@
+name: Evaluation Suite
+
+on:
+  schedule:
+    # Run weekly on Wednesdays at 08:00 UTC
+    - cron: "0 8 * * 3"
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: "Path to evaluation dataset"
+        required: false
+        default: "tests/evaluation/test_cases/golden_dataset.json"
+
+jobs:
+  evaluate:
+    name: Run Evaluation Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install anthropic pydantic pydantic-settings structlog python-dotenv
+          pip install cryptography httpx tenacity
+
+      - name: Run evaluation
+        run: |
+          DATASET="${{ github.event.inputs.dataset || 'tests/evaluation/test_cases/golden_dataset.json' }}"
+          python scripts/run_evaluation.py \
+            --dataset "$DATASET" \
+            --output evaluation-report.json
+
+      - name: Display evaluation summary
+        if: always()
+        run: |
+          if [ -f evaluation-report.json ]; then
+            python -c "
+          import json
+          with open('evaluation-report.json') as f:
+              report = json.load(f)
+          print('=== Evaluation Results ===')
+          print(f'Overall: {report.get(\"overall_result\", \"UNKNOWN\")}')
+          for metric, data in report.get('metrics', {}).items():
+              if isinstance(data, dict):
+                  meets = data.get('meets_target', 'N/A')
+                  print(f'  {metric}: meets_target={meets}')
+          "
+          fi
+
+      - name: Upload evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-report
+          path: evaluation-report.json
+
+  eval-unit-tests:
+    name: Evaluation Framework Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest pytest-mock
+          pip install anthropic pydantic pydantic-settings structlog python-dotenv
+          pip install cryptography httpx tenacity
+
+      - name: Run evaluation unit tests
+        run: |
+          python -m pytest tests/unit/test_evaluation/ \
+            -o "addopts=" \
+            --tb=short \
+            -v

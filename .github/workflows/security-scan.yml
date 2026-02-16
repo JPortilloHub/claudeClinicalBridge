@@ -1,0 +1,107 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Mondays at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  bandit:
+    name: Bandit Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Bandit
+        run: pip install "bandit[toml]"
+
+      - name: Run Bandit
+        run: bandit -r src/python/ -c pyproject.toml -f json -o bandit-report.json || true
+
+      - name: Check Bandit results
+        run: |
+          bandit -r src/python/ -c pyproject.toml -ll
+          echo "Bandit scan passed (no high-severity issues)"
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Install project dependencies
+        run: |
+          pip install anthropic pydantic pydantic-settings structlog python-dotenv
+          pip install cryptography httpx tenacity
+
+      - name: Run pip-audit
+        run: pip-audit --strict --desc || true
+
+  phi-scan:
+    name: PHI in Test Data Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for potential PHI in test files
+        run: |
+          echo "Scanning for potential PHI patterns in test data..."
+          FOUND=0
+
+          # Check for SSN patterns (real format: not 000, 666, or 900-999 prefix)
+          if grep -rn '\b[0-8][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]\b' tests/ data/ \
+            --include='*.json' --include='*.py' | grep -v '123-45-6789' | grep -v '000-00-0000'; then
+            echo "WARNING: Potential real SSN pattern found"
+            FOUND=1
+          fi
+
+          # Check for real email domains (exclude example.com, test.com)
+          if grep -rn '@[a-zA-Z0-9.-]*\.\(com\|org\|net\)' tests/ data/ \
+            --include='*.json' --include='*.py' | grep -v 'example\.com' | grep -v 'test\.com'; then
+            echo "WARNING: Potential real email address found"
+            FOUND=1
+          fi
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "No potential PHI found in test data"
+          fi
+
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog secrets scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified

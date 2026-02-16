@@ -1,0 +1,77 @@
+[
+  {
+    "case_id": "GOLD-001",
+    "description": "Straightforward office visit — established patient with hypertension",
+    "source_note": "65yo M presents for follow-up of hypertension. BP today 142/88. On lisinopril 20mg daily. No chest pain, no shortness of breath. Lungs clear. Heart regular rate and rhythm. Assessment: Essential hypertension, not at goal. Plan: Increase lisinopril to 40mg daily, recheck BP in 4 weeks, basic metabolic panel.",
+    "expected_codes": {
+      "icd10": ["I10"],
+      "cpt": ["99214"]
+    },
+    "expected_diagnoses": ["essential hypertension"],
+    "expected_findings": ["BP 142/88", "lungs clear", "heart regular rate and rhythm"],
+    "expected_medications": ["lisinopril"],
+    "expected_compliance_issues": [],
+    "expected_documentation_gaps": []
+  },
+  {
+    "case_id": "GOLD-002",
+    "description": "New patient with type 2 diabetes and peripheral neuropathy",
+    "source_note": "52yo F new patient with uncontrolled type 2 diabetes, HbA1c 9.2%. Complains of bilateral foot numbness and tingling x 3 months. PMH: obesity BMI 34. Exam: decreased sensation bilateral feet to monofilament. Assessment: Type 2 diabetes mellitus with diabetic polyneuropathy, obesity. Plan: Start metformin 500mg BID, refer endocrinology, diabetic shoe fitting, HbA1c recheck 3 months.",
+    "expected_codes": {
+      "icd10": ["E11.42", "E66.01"],
+      "cpt": ["99205"]
+    },
+    "expected_diagnoses": ["type 2 diabetes mellitus with diabetic polyneuropathy", "obesity"],
+    "expected_findings": ["HbA1c 9.2%", "decreased sensation bilateral feet", "BMI 34"],
+    "expected_medications": ["metformin"],
+    "expected_compliance_issues": [],
+    "expected_documentation_gaps": []
+  },
+  {
+    "case_id": "GOLD-003",
+    "description": "Coding specificity issue — unspecified knee pain missing laterality",
+    "source_note": "45yo M with knee pain for 2 weeks after twisting injury playing basketball. Exam shows medial joint line tenderness, positive McMurray test. X-ray negative for fracture. Assessment: Internal derangement of knee. Plan: MRI knee, physical therapy referral, naproxen 500mg BID.",
+    "expected_codes": {
+      "icd10": ["M23.90"],
+      "cpt": ["99213"]
+    },
+    "expected_diagnoses": ["internal derangement of knee"],
+    "expected_findings": ["medial joint line tenderness", "positive McMurray test", "x-ray negative"],
+    "expected_medications": ["naproxen"],
+    "expected_compliance_issues": ["missing laterality for knee condition"],
+    "expected_documentation_gaps": ["laterality not specified"]
+  },
+  {
+    "case_id": "GOLD-004",
+    "description": "Complex multi-diagnosis encounter with compliance risk",
+    "source_note": "78yo F presents with acute exacerbation of COPD with productive cough and increased dyspnea x 3 days. Also managing chronic low back pain. PMH: COPD, lumbar stenosis, former smoker. Vitals: SpO2 91% on RA, RR 24, temp 100.1F. Lungs: bilateral wheezes and rhonchi. Assessment: 1) Acute exacerbation of COPD 2) Chronic low back pain, stable 3) Possible pneumonia vs bronchitis. Plan: Chest X-ray, prednisone burst 40mg x 5 days, albuterol nebulizer, azithromycin, follow-up 1 week.",
+    "expected_codes": {
+      "icd10": ["J44.1", "M54.5"],
+      "cpt": ["99215"]
+    },
+    "expected_diagnoses": ["acute exacerbation of COPD", "chronic low back pain"],
+    "expected_findings": ["SpO2 91%", "bilateral wheezes and rhonchi", "temp 100.1F"],
+    "expected_medications": ["prednisone", "albuterol", "azithromycin"],
+    "expected_compliance_issues": [],
+    "expected_documentation_gaps": ["possible pneumonia not confirmed with imaging"]
+  },
+  {
+    "case_id": "GOLD-005",
+    "description": "Prior authorization scenario — total knee arthroplasty",
+    "source_note": "68yo M with severe right knee osteoarthritis. Failed 6 months of conservative management including physical therapy, NSAIDs, and cortisone injection. Weight-bearing X-ray shows bone-on-bone medial compartment. BMI 28. Cleared by cardiology for surgery. Assessment: Primary osteoarthritis right knee, severe. Plan: Schedule total knee arthroplasty, obtain prior authorization from UnitedHealthcare.",
+    "expected_codes": {
+      "icd10": ["M17.11"],
+      "cpt": ["27447"]
+    },
+    "expected_diagnoses": ["primary osteoarthritis right knee"],
+    "expected_findings": ["bone-on-bone medial compartment", "BMI 28", "failed conservative management"],
+    "expected_medications": [],
+    "expected_compliance_issues": [],
+    "expected_documentation_gaps": [],
+    "prior_auth": {
+      "payer": "UnitedHealthcare",
+      "procedure": "27447",
+      "expected_outcome": "approved"
+    }
+  }
+]
