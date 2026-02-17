@@ -3,10 +3,15 @@ Clinical Pipeline Coordinator.
 
 Orchestrates multi-agent execution for processing clinical notes through
 documentation, coding, compliance, prior authorization, and quality assurance.
+
+Supports two execution modes:
+1. Full pipeline: process_note() runs all phases sequentially (CLI)
+2. Step-by-step: run_single_phase() runs one phase at a time (HITL UI)
 """
 
 from __future__ import annotations
 
+import time
 import uuid
 from typing import Any
 
@@ -22,6 +27,28 @@ from src.python.orchestration.workflow import execute_phase
 from src.python.utils.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Phase execution order
+PHASE_ORDER = ["documentation", "coding", "compliance", "prior_auth", "quality_assurance"]
+
+
+def get_next_phase(current_phase: str, skip_prior_auth: bool, payer: str | None, procedure: str | None) -> str | None:
+    """Determine the next phase after the current one."""
+    try:
+        idx = PHASE_ORDER.index(current_phase)
+    except ValueError:
+        return None
+
+    if idx >= len(PHASE_ORDER) - 1:
+        return None  # Last phase
+
+    next_phase = PHASE_ORDER[idx + 1]
+
+    # Skip prior_auth if not needed
+    if next_phase == "prior_auth" and (skip_prior_auth or not payer or not procedure):
+        return "quality_assurance"
+
+    return next_phase
 
 
 class ClinicalPipelineCoordinator:
@@ -50,6 +77,108 @@ class ClinicalPipelineCoordinator:
         self.qa_agent = QualityAssuranceAgent(client=client)
 
         logger.info("coordinator_initialized")
+
+    def run_single_phase(
+        self,
+        phase_name: str,
+        raw_note: str,
+        phase_contents: dict[str, str],
+        patient_id: str | None = None,
+        payer: str | None = None,
+        procedure: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Run a single pipeline phase and return the result.
+
+        Used by the HITL UI to execute phases one at a time.
+        Prior phase outputs are passed in via phase_contents, which allows
+        the UI to substitute human-edited content.
+
+        Args:
+            phase_name: Which phase to run (documentation, coding, etc.)
+            raw_note: The original clinical note text
+            phase_contents: Dict mapping phase_name -> content string for completed phases
+            patient_id: Optional patient identifier
+            payer: Optional payer name
+            procedure: Optional procedure description
+            context: Optional additional context
+
+        Returns:
+            Dict with 'content', 'usage', 'agent', 'duration_seconds' keys.
+            On error, includes 'error' key instead of 'content'.
+        """
+        # Build shared context
+        shared_context = dict(context) if context else {}
+        if patient_id:
+            shared_context["patient_id"] = patient_id
+        if payer:
+            shared_context["payer"] = payer
+        ctx = shared_context if shared_context else None
+
+        logger.info(
+            "single_phase_started",
+            phase=phase_name,
+            available_phases=list(phase_contents.keys()),
+        )
+
+        start = time.monotonic()
+
+        try:
+            if phase_name == "documentation":
+                result = self.doc_agent.structure_note(raw_note, ctx)
+
+            elif phase_name == "coding":
+                doc_content = phase_contents.get("documentation", "")
+                if not doc_content:
+                    return {"error": "Documentation phase must be completed first", "agent": "medical_coding"}
+                result = self.coding_agent.suggest_codes(doc_content, ctx)
+
+            elif phase_name == "compliance":
+                doc_content = phase_contents.get("documentation", "")
+                coding_content = phase_contents.get("coding", "")
+                if not doc_content or not coding_content:
+                    return {"error": "Documentation and Coding phases must be completed first", "agent": "compliance"}
+                result = self.compliance_agent.validate(doc_content, coding_content, ctx)
+
+            elif phase_name == "prior_auth":
+                doc_content = phase_contents.get("documentation", "")
+                if not doc_content or not payer or not procedure:
+                    return {"error": "Documentation, payer, and procedure are required", "agent": "prior_authorization"}
+                result = self.prior_auth_agent.assess_authorization(procedure, payer, doc_content, ctx)
+
+            elif phase_name == "quality_assurance":
+                doc_content = phase_contents.get("documentation", "")
+                coding_content = phase_contents.get("coding", "")
+                compliance_content = phase_contents.get("compliance", "")
+                if not doc_content or not coding_content:
+                    return {"error": "Prior phases must be completed first", "agent": "quality_assurance"}
+                result = self.qa_agent.review(raw_note, doc_content, coding_content, compliance_content, ctx)
+
+            else:
+                return {"error": f"Unknown phase: {phase_name}", "agent": "coordinator"}
+
+        except Exception as e:
+            duration = time.monotonic() - start
+            logger.error(
+                "single_phase_error",
+                phase=phase_name,
+                error=str(e),
+                duration_seconds=duration,
+            )
+            return {"error": str(e), "agent": phase_name, "duration_seconds": duration}
+
+        duration = time.monotonic() - start
+        result["duration_seconds"] = duration
+
+        logger.info(
+            "single_phase_completed",
+            phase=phase_name,
+            duration_seconds=duration,
+            has_error="error" in result,
+        )
+
+        return result
 
     def process_note(
         self,

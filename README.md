@@ -257,6 +257,53 @@ python main.py --file note.txt --patient-id P123 --payer "Aetna" --procedure "70
 
 **Note**: Each pipeline run makes 4-5 Anthropic API calls (one per active phase).
 
+### Human-in-the-Loop UI (Web)
+
+A React + FastAPI web interface where human reviewers can review and edit agent output after each phase before advancing.
+
+**Start the backend** (requires Docker services running):
+```bash
+# Start PostgreSQL, Qdrant, Redis
+docker-compose up -d
+
+# Initialize database tables and seed admin user
+python scripts/init_db.py
+python scripts/seed_admin.py
+
+# Start FastAPI backend (port 8000)
+uvicorn src.python.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Start the frontend** (separate terminal):
+```bash
+cd src/typescript
+npm install
+npm run dev    # Vite dev server on port 5173
+```
+
+**Open** http://localhost:5173 and login with `admin` / `admin`.
+
+**Workflow**:
+1. Create a new workflow by pasting a clinical note
+2. Click "Run Phase" on the documentation phase
+3. Wait 60-90 seconds for the agent to complete
+4. Review the output, optionally click "Edit Output" to modify
+5. Click "Approve & Continue" to advance to the next phase
+6. Repeat for each phase until the workflow is complete
+
+**API Endpoints**:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login with username/password |
+| GET | `/api/auth/me` | Get current user info |
+| POST | `/api/workflows/` | Create a new workflow |
+| GET | `/api/workflows/` | List all workflows |
+| GET | `/api/workflows/{id}` | Get workflow with phase results |
+| POST | `/api/workflows/{id}/phases/{phase}/run` | Run a phase |
+| GET | `/api/workflows/{id}/phases/{phase}` | Poll phase status |
+| PATCH | `/api/workflows/{id}/phases/{phase}` | Edit phase content |
+| POST | `/api/workflows/{id}/phases/{phase}/approve` | Approve and advance |
+
 ### Programmatic Usage
 
 ```python
@@ -305,6 +352,12 @@ claudeClinicalBridge/
 │   │   ├── oracle_fhir/
 │   │   ├── medical_knowledge/
 │   │   └── payer_policy/
+│   ├── api/                    # HITL UI backend (FastAPI)
+│   │   ├── main.py             # FastAPI app
+│   │   ├── models.py           # SQLAlchemy models
+│   │   ├── schemas.py          # Pydantic request/response
+│   │   ├── dependencies.py     # Auth + DB dependencies
+│   │   └── routers/            # auth, workflows, phases
 │   ├── orchestration/          # Pipeline coordinator & workflow
 │   │   ├── coordinator.py
 │   │   ├── workflow.py
@@ -312,11 +365,16 @@ claudeClinicalBridge/
 │   ├── evaluation/             # Evaluation framework (5 metrics)
 │   ├── fhir/                   # Shared FHIR base client
 │   ├── security/               # HIPAA compliance utilities
-│   └── utils/                  # Configuration and logging
+│   └── utils/                  # Configuration, logging, database
+├── src/typescript/             # HITL UI frontend (React + Vite)
+│   ├── src/
+│   │   ├── pages/              # Login, Dashboard, WorkflowDetail
+│   │   ├── components/         # PhaseCard, PhaseEditor, Layout
+│   │   ├── api/                # Axios client, auth, workflows
+│   │   └── types/              # TypeScript interfaces
+│   └── package.json
 ├── tests/                      # Unit, integration, and evaluation tests
-│   ├── unit/
-│   ├── integration/
-│   └── evaluation/
+├── scripts/                    # init_db.py, seed_admin.py
 ├── data/                       # Medical code datasets
 ├── docker-compose.yml          # Qdrant, PostgreSQL, Redis
 └── pyproject.toml              # Poetry dependencies
@@ -388,14 +446,17 @@ Five metrics assess pipeline quality:
 - [x] Orchestration Layer (5-phase pipeline)
 - [x] Evaluation Framework (5 metrics)
 - [x] HIPAA Compliance (PHI redaction, audit logging, encryption)
-- [x] Integration Tests
+- [x] Integration Tests (225 passing)
 - [x] CLI Entry Point (`main.py`)
+- [x] Human-in-the-Loop UI (React + FastAPI + PostgreSQL)
 
 ### Future
-- [ ] Human-in-the-Loop UI (TypeScript/React)
+- [ ] WebSocket for real-time phase execution updates
+- [ ] Role-based access (reviewer, coder, admin)
+- [ ] Workflow assignment to specific reviewers
+- [ ] Export to PDF/Word for billing submission
 - [ ] Real-time dictation support
 - [ ] Learning from corrections
-- [ ] Multi-modal support (images, PDFs)
 
 ## License
 

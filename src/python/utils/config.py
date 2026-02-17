@@ -106,6 +106,28 @@ class Settings(BaseSettings):
         description="Database URL for payer policies",
     )
 
+    # PostgreSQL (Workflow Persistence)
+    postgres_host: str = Field(
+        default="localhost",
+        description="PostgreSQL host",
+    )
+    postgres_port: int = Field(
+        default=5433,
+        description="PostgreSQL port",
+    )
+    postgres_user: str = Field(
+        default="clinical_user",
+        description="PostgreSQL user",
+    )
+    postgres_password: str = Field(
+        default="clinical_password_change_in_production",
+        description="PostgreSQL password",
+    )
+    postgres_db: str = Field(
+        default="clinical_bridge",
+        description="PostgreSQL database name",
+    )
+
     # Redis (Future Caching)
     redis_url: str = Field(
         default="redis://localhost:6379/0",
