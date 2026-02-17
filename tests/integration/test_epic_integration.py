@@ -104,7 +104,7 @@ class TestEpicFHIRClientIntegration:
         mock_response.raise_for_status = MagicMock()
 
         with patch("src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
                 from src.python.mcp_servers.epic_fhir.client import EpicFHIRClient
 
                 client = EpicFHIRClient(
@@ -116,7 +116,7 @@ class TestEpicFHIRClientIntegration:
                 result = await client.search_patients(family="Smith")
 
                 assert len(result) >= 1
-                assert result[0]["id"] == "epic-T1001"
+                assert result[0].id == "epic-T1001"
 
     @pytest.mark.asyncio
     async def test_get_conditions_returns_diagnoses(self):
@@ -127,7 +127,7 @@ class TestEpicFHIRClientIntegration:
         mock_response.raise_for_status = MagicMock()
 
         with patch("src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
                 from src.python.mcp_servers.epic_fhir.client import EpicFHIRClient
 
                 client = EpicFHIRClient(
@@ -149,7 +149,7 @@ class TestEpicFHIRClientIntegration:
         mock_response.raise_for_status = MagicMock()
 
         with patch("src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
                 from src.python.mcp_servers.epic_fhir.client import EpicFHIRClient
 
                 client = EpicFHIRClient(

@@ -159,7 +159,8 @@ class TestMedicalCodeEmbedder:
         """Test large batch is chunked to prevent OOM."""
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 768
-        mock_model.encode.return_value = np.random.rand(5000, 768)
+        # Return array matching input size
+        mock_model.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 768)
         mock_transformer.return_value = mock_model
 
         embedder = MedicalCodeEmbedder()

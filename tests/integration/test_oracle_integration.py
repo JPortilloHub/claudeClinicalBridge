@@ -84,20 +84,19 @@ class TestOracleHealthClientIntegration:
         mock_response.raise_for_status = MagicMock()
 
         with patch("src.python.mcp_servers.oracle_fhir.client.OracleHealthFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
                 from src.python.mcp_servers.oracle_fhir.client import OracleHealthFHIRClient
 
                 client = OracleHealthFHIRClient(
                     base_url="https://fhir-open.cerner.com/r4/sandbox",
                     client_id="test-client",
-                    client_secret="test-secret",
                 )
                 client._access_token = "mock-token"
 
                 result = await client.search_patients(family="Johnson")
 
                 assert len(result) >= 1
-                assert result[0]["id"] == "oracle-C2001"
+                assert result[0].id == "oracle-C2001"
 
     @pytest.mark.asyncio
     async def test_get_conditions_returns_diagnoses(self):
@@ -108,13 +107,12 @@ class TestOracleHealthClientIntegration:
         mock_response.raise_for_status = MagicMock()
 
         with patch("src.python.mcp_servers.oracle_fhir.client.OracleHealthFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
                 from src.python.mcp_servers.oracle_fhir.client import OracleHealthFHIRClient
 
                 client = OracleHealthFHIRClient(
                     base_url="https://fhir-open.cerner.com/r4/sandbox",
                     client_id="test-client",
-                    client_secret="test-secret",
                 )
                 client._access_token = "mock-token"
 
@@ -130,7 +128,7 @@ class TestOracleHealthMCPTools:
         """Test that the Oracle Health MCP server registers expected tools."""
         from src.python.mcp_servers.oracle_fhir.server import mcp
 
-        assert mcp.name == "oracle-health"
+        assert mcp.name == "oracle-health-fhir"
 
     def test_ehr_agnostic_response_format(self):
         """Test that Oracle and Epic return same response structure.
@@ -181,7 +179,6 @@ class TestOracleHealthErrorHandling:
             client = OracleHealthFHIRClient(
                 base_url="https://fhir-open.cerner.com/r4/sandbox",
                 client_id="bad-client",
-                client_secret="bad-secret",
             )
 
             with pytest.raises(Exception):
