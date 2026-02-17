@@ -210,7 +210,7 @@ class OracleHealthFHIRClient(BaseFHIRClient):
         endpoint: str,
         params: dict | None = None,
         **kwargs,
-    ) -> httpx.Response:
+    ) -> dict[str, Any]:
         """
         Make authenticated FHIR API request.
 
@@ -223,7 +223,7 @@ class OracleHealthFHIRClient(BaseFHIRClient):
             **kwargs: Additional arguments for httpx request
 
         Returns:
-            HTTP response
+            Response JSON as dict
 
         Raises:
             httpx.HTTPError: On request failure
@@ -252,4 +252,4 @@ class OracleHealthFHIRClient(BaseFHIRClient):
         )
 
         response.raise_for_status()
-        return response
+        return response.json()

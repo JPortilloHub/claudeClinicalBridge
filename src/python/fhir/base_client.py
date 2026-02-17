@@ -13,7 +13,6 @@ import httpx
 from fhir.resources.bundle import Bundle
 from fhir.resources.condition import Condition
 from fhir.resources.encounter import Encounter
-from fhir.resources.medication import Medication
 from fhir.resources.medicationrequest import MedicationRequest
 from fhir.resources.observation import Observation
 from fhir.resources.patient import Patient
@@ -386,7 +385,7 @@ class BaseFHIRClient(ABC):
         params: dict[str, Any] = {
             "patient": patient_id,
             "_count": limit,
-            "_sort": "-authoredon",
+            "_sort": "-authoredOn",
         }
 
         if status:

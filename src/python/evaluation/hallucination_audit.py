@@ -206,4 +206,5 @@ def _is_traceable(item: str, note_lower: str, note_tokens: set[str]) -> bool:
         return True  # No significant tokens to check
 
     overlap = significant & note_tokens
-    return len(overlap) >= max(1, len(significant) // 2)
+    required = max(2, len(significant) // 2) if len(significant) > 1 else 1
+    return len(overlap) >= required

@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
+pytest.importorskip("fhir.resources", reason="fhir.resources not installed")
+
 from fhir.resources.patient import Patient
 
 from src.python.mcp_servers.epic_fhir.client import (

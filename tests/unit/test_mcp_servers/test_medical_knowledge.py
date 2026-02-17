@@ -8,8 +8,11 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
-import numpy as np
 import pytest
+
+np = pytest.importorskip("numpy", reason="numpy not installed")
+pytest.importorskip("qdrant_client", reason="qdrant-client not installed")
+
 from qdrant_client.http import models
 
 from src.python.mcp_servers.medical_knowledge.embeddings import (

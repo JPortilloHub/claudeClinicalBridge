@@ -191,8 +191,8 @@ def validate_clinical(
 
 
 def _is_icd10(code: str) -> bool:
-    """Check if code looks like ICD-10-CM (letter + digits + optional dot)."""
-    return bool(re.match(r"^[A-Z]\d", code.strip().upper()))
+    """Check if code looks like ICD-10-CM (letter + 2+ digits + optional dot section)."""
+    return bool(re.match(r"^[A-Z]\d{2}", code.strip().upper()))
 
 
 def _is_cpt(code: str) -> bool:

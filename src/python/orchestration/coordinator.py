@@ -99,7 +99,7 @@ class ClinicalPipelineCoordinator:
         if payer:
             shared_context["payer"] = payer
 
-        ctx = shared_context or None
+        ctx = shared_context if shared_context else None
 
         try:
             # Phase 1: Clinical Documentation

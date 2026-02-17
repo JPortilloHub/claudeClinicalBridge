@@ -6,6 +6,7 @@ via FHIR R4 APIs. Includes patient search, encounters, conditions, observations,
 medications, and comprehensive patient data retrieval.
 """
 
+import json
 import threading
 from typing import Any
 
@@ -354,9 +355,19 @@ async def get_patient_observations(
         limit=limit,
     )
 
+    # Parse date_range into start/end for base client compatibility
+    date_range_start = None
+    date_range_end = None
+    if date_range:
+        parts = date_range.split("&date=")
+        date_range_start = parts[0] if parts[0] else None
+        date_range_end = parts[1] if len(parts) > 1 else None
+
     try:
         observations = await client.get_patient_observations(
-            patient_id, category=category, code=code, date_range=date_range, limit=limit
+            patient_id, category=category, code=code,
+            date_range_start=date_range_start, date_range_end=date_range_end,
+            limit=limit,
         )
 
         # Convert to dicts (Pydantic v2 compatible)
@@ -576,8 +587,6 @@ async def patient_resource(patient_id: str) -> str:
     Returns:
         Patient resource as JSON string
     """
-    import json
-
     logger.info("oracle_patient_resource", patient_id=patient_id)
     patient_data = await get_patient(patient_id)
     return json.dumps(patient_data, indent=2)

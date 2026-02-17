@@ -495,13 +495,11 @@ async def code_resource(code_type: str, code: str) -> str:
     return "\n".join(lines)
 
 
-# Server lifecycle hooks
-@mcp.server_init()
+# Server initialization (called on demand, not via lifecycle hook)
 async def init():
     """Initialize server and warm up components."""
     logger.info("Medical Knowledge MCP Server initializing")
 
-    # Warm up embedder and search engine
     try:
         embedder = get_embedder()
         logger.info(
@@ -513,7 +511,6 @@ async def init():
         search_engine = get_search_engine()
         logger.info("Search engine ready")
 
-        # Log collection status
         for code_type in ["icd10", "cpt"]:
             stats = await get_collection_stats(code_type)
             logger.info(f"{code_type.upper()} collection status", **stats)
