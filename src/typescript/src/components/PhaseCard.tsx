@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PhaseResult } from '../types/api';
 import PhaseEditor from './PhaseEditor';
+import ContentRenderer from './renderers/ContentRenderer';
 
 interface PhaseCardProps {
   phase: PhaseResult;
@@ -12,10 +13,17 @@ interface PhaseCardProps {
   onContentUpdated: () => void;
 }
 
+function stripFences(s: string): string {
+  const t = s.trim();
+  const m = t.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);
+  return m ? m[1].trim() : t;
+}
+
 function formatContent(raw: string | null): string {
   if (!raw) return '';
+  const cleaned = stripFences(raw);
   try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
+    return JSON.stringify(JSON.parse(cleaned), null, 2);
   } catch {
     return raw;
   }
@@ -32,6 +40,7 @@ export default function PhaseCard({
 }: PhaseCardProps) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(isCurrentPhase);
+  const [showRaw, setShowRaw] = useState(false);
 
   const canRun = phase.status === 'pending' && isCurrentPhase;
   const canApprove = phase.status === 'completed' && isCurrentPhase;
@@ -77,7 +86,19 @@ export default function PhaseCard({
           )}
 
           {displayContent && !editing && (
-            <pre className="phase-content">{formatContent(displayContent)}</pre>
+            <>
+              {showRaw ? (
+                <pre className="phase-content">{formatContent(displayContent)}</pre>
+              ) : (
+                <ContentRenderer phaseName={phase.phase_name} content={displayContent} />
+              )}
+              <button
+                className="btn-toggle-raw"
+                onClick={() => setShowRaw(!showRaw)}
+              >
+                {showRaw ? 'Formatted View' : 'View Raw JSON'}
+              </button>
+            </>
           )}
 
           {editing && (
