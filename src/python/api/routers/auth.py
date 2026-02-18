@@ -2,9 +2,9 @@
 
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from src.python.api import schemas
@@ -15,7 +15,13 @@ from src.python.utils.database import get_db
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
@@ -32,7 +38,7 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     """Authenticate user and return JWT token."""
     user = db.query(User).filter(User.username == request.username).first()
 
-    if not user or not pwd_context.verify(request.password, user.hashed_password):
+    if not user or not _verify_password(request.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

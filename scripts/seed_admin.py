@@ -6,13 +6,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from passlib.context import CryptContext
+import bcrypt
 
 # Import models first so they register with Base.metadata
 from src.python.api.models import User  # noqa: F401
 from src.python.utils.database import SessionLocal, init_tables
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def seed_admin():
@@ -29,7 +27,7 @@ def seed_admin():
 
         admin = User(
             username="admin",
-            hashed_password=pwd_context.hash("admin"),
+            hashed_password=bcrypt.hashpw("admin".encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
             full_name="Admin User",
             role="admin",
             is_active=True,
