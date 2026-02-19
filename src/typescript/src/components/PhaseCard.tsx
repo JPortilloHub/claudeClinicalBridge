@@ -13,27 +13,6 @@ interface PhaseCardProps {
   onContentUpdated: () => void;
 }
 
-function stripFences(s: string): string {
-  const t = s.trim();
-  if (t.startsWith('{') || t.startsWith('[')) return t;
-  const m = t.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
-  if (m) return m[1].trim();
-  const first = t.indexOf('{');
-  const last = t.lastIndexOf('}');
-  if (first !== -1 && last > first) return t.slice(first, last + 1);
-  return t;
-}
-
-function formatContent(raw: string | null): string {
-  if (!raw) return '';
-  const cleaned = stripFences(raw);
-  try {
-    return JSON.stringify(JSON.parse(cleaned), null, 2);
-  } catch {
-    return raw;
-  }
-}
-
 export default function PhaseCard({
   phase,
   label,
@@ -47,7 +26,6 @@ export default function PhaseCard({
   const [expanded, setExpanded] = useState(isCurrentPhase || phase.status === 'running');
   const [showRaw, setShowRaw] = useState(false);
 
-  // Auto-expand when phase starts running or completes
   useEffect(() => {
     if (phase.status === 'running' || (isCurrentPhase && phase.status === 'completed')) {
       setExpanded(true);
@@ -57,6 +35,7 @@ export default function PhaseCard({
   const canRun = phase.status === 'pending' && isCurrentPhase;
   const canApprove = phase.status === 'completed' && isCurrentPhase;
   const isRunning = phase.status === 'running';
+  const isFailed = phase.status === 'failed';
   const displayContent = phase.edited_content || phase.content;
 
   return (
@@ -84,23 +63,44 @@ export default function PhaseCard({
 
       {expanded && (
         <div className="phase-card-body">
-          {phase.error && (
-            <div className="phase-error">
-              <strong>Error:</strong> {phase.error}
+          {/* Error state */}
+          {isFailed && phase.error && (
+            <div className="phase-error-banner">
+              <div className="phase-error-icon">!</div>
+              <div className="phase-error-content">
+                <strong>Phase Failed</strong>
+                <p>{phase.error}</p>
+              </div>
+              {isCurrentPhase && (
+                <button className="btn-secondary btn-sm" onClick={onRun}>
+                  Retry
+                </button>
+              )}
             </div>
           )}
 
+          {/* Running skeleton */}
           {isRunning && (
-            <div className="phase-running">
-              <div className="spinner" />
-              <span>Running agent... this takes 60-90 seconds</span>
+            <div className="phase-running-skeleton">
+              <div className="phase-running-header">
+                <div className="spinner" />
+                <span>Running agent... this takes 60-90 seconds</span>
+              </div>
+              <div className="skeleton-kpi-row">
+                <div className="skeleton-kpi" />
+                <div className="skeleton-kpi" />
+                <div className="skeleton-kpi" />
+              </div>
+              <div className="skeleton-block" />
+              <div className="skeleton-block skeleton-block-sm" />
             </div>
           )}
 
-          {displayContent && !editing && (
+          {/* Content display */}
+          {displayContent && !editing && !isRunning && (
             <>
               {showRaw ? (
-                <pre className="phase-content">{formatContent(displayContent)}</pre>
+                <pre className="phase-content">{displayContent}</pre>
               ) : (
                 <ContentRenderer phaseName={phase.phase_name} content={displayContent} />
               )}
@@ -108,11 +108,12 @@ export default function PhaseCard({
                 className="btn-toggle-raw"
                 onClick={() => setShowRaw(!showRaw)}
               >
-                {showRaw ? 'Formatted View' : 'View Raw JSON'}
+                {showRaw ? 'Formatted View' : 'View Technical Data'}
               </button>
             </>
           )}
 
+          {/* Editor */}
           {editing && (
             <PhaseEditor
               workflowId={workflowId}
@@ -130,6 +131,7 @@ export default function PhaseCard({
             <div className="edited-badge">Edited by reviewer</div>
           )}
 
+          {/* Actions */}
           <div className="phase-actions">
             {canRun && (
               <button className="btn-primary" onClick={onRun}>
