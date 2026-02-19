@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Tabs from './Tabs';
 
 interface Props { data: any; }
 
@@ -29,24 +30,16 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   );
 }
 
-export default function ComplianceView({ data }: Props) {
+/* ── Overview tab ─────────────────────────────────────────────── */
+function OverviewTab({ data }: Props) {
   const status = data?.overall_status;
   const risk = data?.risk_level;
   const score = data?.audit_readiness_score;
-  const codeVals = data?.code_validations || [];
-  const emVal = data?.em_validation;
   const issues = data?.compliance_issues || [];
-  const payer = data?.payer_checks;
-
-  // Sort issues: critical first
-  const sortedIssues = [...issues].sort((a: any, b: any) => {
-    const order: Record<string, number> = { critical: 0, warning: 1, info: 2 };
-    return (order[a.severity] ?? 3) - (order[b.severity] ?? 3);
-  });
 
   return (
-    <div className="renderer-container">
-      {/* STATUS BANNER */}
+    <div className="r-tab-inner">
+      {/* Status banner */}
       <div className={`r-status-banner ${statusColor(status)}`}>
         <div className="r-status-banner-items">
           <div className="r-status-item">
@@ -66,7 +59,7 @@ export default function ComplianceView({ data }: Props) {
         </div>
       </div>
 
-      {/* AUDIT READINESS */}
+      {/* Audit readiness */}
       {score != null && (
         <div className="r-section">
           <h4 className="r-section-title">Audit Readiness</h4>
@@ -74,7 +67,41 @@ export default function ComplianceView({ data }: Props) {
         </div>
       )}
 
-      {/* CODE VALIDATIONS */}
+      {/* Issue count summary */}
+      {issues.length > 0 && (
+        <div className="r-section">
+          <h4 className="r-section-title">Issue Summary</h4>
+          <div className="r-issue-summary-row">
+            {(['critical', 'warning', 'info'] as const).map(severity => {
+              const count = issues.filter((i: any) => i.severity === severity).length;
+              if (count === 0) return null;
+              return (
+                <div key={severity} className="r-issue-summary-item">
+                  <span className={`r-badge ${severityBadge(severity)}`}>{severity}</span>
+                  <span className="r-issue-summary-count">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {issues.length === 0 && (
+        <div className="r-empty-success">No compliance issues found</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Details tab ──────────────────────────────────────────────── */
+function DetailsTab({ data }: Props) {
+  const codeVals = data?.code_validations || [];
+  const emVal = data?.em_validation;
+  const payer = data?.payer_checks;
+
+  return (
+    <div className="r-tab-inner">
+      {/* Code validations */}
       {codeVals.length > 0 && (
         <div className="r-section">
           <h4 className="r-section-title">Code Validations</h4>
@@ -92,7 +119,7 @@ export default function ComplianceView({ data }: Props) {
         </div>
       )}
 
-      {/* E/M VALIDATION */}
+      {/* E/M validation */}
       {emVal && (
         <div className="r-section">
           <h4 className="r-section-title">E/M Validation</h4>
@@ -100,15 +127,15 @@ export default function ComplianceView({ data }: Props) {
             <div className="r-em-compare">
               <div className="r-em-compare-item">
                 <span className="r-label">Documented</span>
-                <span className="r-code-value r-code-value-sm">{emVal.documented_level || '—'}</span>
+                <span className="r-code-value r-code-value-sm">{emVal.documented_level || '\u2014'}</span>
               </div>
               <span className="r-em-arrow">{'\u2192'}</span>
               <div className="r-em-compare-item">
                 <span className="r-label">Supported</span>
-                <span className="r-code-value r-code-value-sm">{emVal.supported_level || '—'}</span>
+                <span className="r-code-value r-code-value-sm">{emVal.supported_level || '\u2014'}</span>
               </div>
               <span className={`r-badge ${emVal.status === 'pass' ? 'r-badge-green' : 'r-badge-red'}`}>
-                {emVal.status || '—'}
+                {emVal.status || '\u2014'}
               </span>
             </div>
             {emVal.issues && emVal.issues.length > 0 && (
@@ -120,33 +147,7 @@ export default function ComplianceView({ data }: Props) {
         </div>
       )}
 
-      {/* COMPLIANCE ISSUES */}
-      {sortedIssues.length > 0 && (
-        <div className="r-section">
-          <h4 className="r-section-title">Compliance Issues ({sortedIssues.length})</h4>
-          {sortedIssues.map((issue: any, i: number) => (
-            <div key={i} className={`r-card r-issue-card r-issue-${issue.severity || 'info'}`}>
-              <div className="r-card-header">
-                <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity}</span>
-                {issue.category && <span className="r-badge r-badge-gray">{issue.category?.replace(/_/g, ' ')}</span>}
-              </div>
-              <p className="r-card-detail">{issue.description}</p>
-              {issue.regulatory_reference && (
-                <p className="r-card-note"><strong>Reference:</strong> {issue.regulatory_reference}</p>
-              )}
-              {issue.remediation && (
-                <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {sortedIssues.length === 0 && (
-        <div className="r-empty-success">No compliance issues found</div>
-      )}
-
-      {/* PAYER CHECKS */}
+      {/* Payer checks */}
       {payer && (
         <div className="r-section">
           <h4 className="r-section-title">Payer Checks</h4>
@@ -174,6 +175,65 @@ export default function ComplianceView({ data }: Props) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Issues tab ───────────────────────────────────────────────── */
+function IssuesTab({ data }: Props) {
+  const issues = data?.compliance_issues || [];
+
+  const sortedIssues = [...issues].sort((a: any, b: any) => {
+    const order: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+    return (order[a.severity] ?? 3) - (order[b.severity] ?? 3);
+  });
+
+  if (sortedIssues.length === 0) {
+    return (
+      <div className="r-tab-inner">
+        <div className="r-empty-success">No compliance issues found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="r-tab-inner">
+      {sortedIssues.map((issue: any, i: number) => (
+        <div key={i} className={`r-card r-issue-card r-issue-${issue.severity || 'info'}`}>
+          <div className="r-card-header">
+            <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity}</span>
+            {issue.category && <span className="r-badge r-badge-gray">{issue.category?.replace(/_/g, ' ')}</span>}
+          </div>
+          <p className="r-card-detail">{issue.description}</p>
+          {issue.regulatory_reference && (
+            <p className="r-card-note"><strong>Reference:</strong> {issue.regulatory_reference}</p>
+          )}
+          {issue.remediation && (
+            <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────── */
+export default function ComplianceView({ data }: Props) {
+  if (!data) return null;
+
+  const issues = data?.compliance_issues || [];
+
+  return (
+    <div className="renderer-container">
+      <Tabs tabs={[
+        { label: 'Overview', content: <OverviewTab data={data} /> },
+        { label: 'Details', content: <DetailsTab data={data} /> },
+        {
+          label: 'Issues',
+          count: issues.length,
+          content: <IssuesTab data={data} />,
+        },
+      ]} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Tabs from './Tabs';
 
 interface Props { data: any; }
 
@@ -14,7 +15,7 @@ function CodeCard({ item, type }: { item: any; type: 'diagnosis' | 'procedure' }
   return (
     <div className="r-card r-code-card">
       <div className="r-code-card-top">
-        <span className="r-code-value">{item.code || '—'}</span>
+        <span className="r-code-value">{item.code || '\u2014'}</span>
         <div className="r-code-info">
           <strong>{item.description || 'No description'}</strong>
           <div className="r-code-badges">
@@ -40,36 +41,111 @@ function CodeCard({ item, type }: { item: any; type: 'diagnosis' | 'procedure' }
   );
 }
 
-export default function CodingView({ data }: Props) {
+/* ── Overview tab ─────────────────────────────────────────────── */
+function OverviewTab({ data }: Props) {
   const diagnoses = data?.diagnoses || [];
   const procedures = data?.procedures || [];
   const em = data?.em_calculation;
-  const notes = data?.coding_notes || [];
-  const queries = data?.queries_needed || [];
 
   return (
-    <div className="renderer-container">
-      {/* DIAGNOSES */}
+    <div className="r-tab-inner">
       {diagnoses.length > 0 && (
         <div className="r-section">
           <h4 className="r-section-title">Diagnoses (ICD-10-CM)</h4>
+          <div className="r-code-table">
+            <div className="r-code-table-header">
+              <span>Code</span>
+              <span>Description</span>
+              <span>Type</span>
+              <span>Confidence</span>
+            </div>
+            {diagnoses.map((dx: any, i: number) => (
+              <div key={i} className="r-code-table-row">
+                <span className="r-code-value r-code-value-sm">{dx.code || '\u2014'}</span>
+                <span>{dx.description || '\u2014'}</span>
+                <span>
+                  {dx.sequencing && (
+                    <span className={`r-badge ${dx.sequencing === 'primary' ? 'r-badge-blue' : 'r-badge-gray'}`}>
+                      {dx.sequencing}
+                    </span>
+                  )}
+                </span>
+                <span>
+                  {dx.confidence && (
+                    <span className={`r-badge ${confidenceClass(dx.confidence)}`}>{dx.confidence}</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {procedures.length > 0 && (
+        <div className="r-section">
+          <h4 className="r-section-title">Procedures (CPT)</h4>
+          <div className="r-code-table">
+            <div className="r-code-table-header">
+              <span>Code</span>
+              <span>Description</span>
+              <span>Confidence</span>
+            </div>
+            {procedures.map((proc: any, i: number) => (
+              <div key={i} className="r-code-table-row">
+                <span className="r-code-value r-code-value-sm">{proc.code || '\u2014'}</span>
+                <span>{proc.description || '\u2014'}</span>
+                <span>
+                  {proc.confidence && (
+                    <span className={`r-badge ${confidenceClass(proc.confidence)}`}>{proc.confidence}</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {em && (
+        <div className="r-section">
+          <h4 className="r-section-title">E/M Level</h4>
+          <div className="r-em-result">
+            <span className="r-label">Level</span>
+            <span className="r-badge r-badge-blue">{em.level || '\u2014'}</span>
+            <span className="r-label">Code</span>
+            <span className="r-code-value r-code-value-sm">{em.code || '\u2014'}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Details tab ──────────────────────────────────────────────── */
+function DetailsTab({ data }: Props) {
+  const diagnoses = data?.diagnoses || [];
+  const procedures = data?.procedures || [];
+  const em = data?.em_calculation;
+
+  return (
+    <div className="r-tab-inner">
+      {diagnoses.length > 0 && (
+        <div className="r-section">
+          <h4 className="r-section-title">Diagnosis Details</h4>
           {diagnoses.map((dx: any, i: number) => (
             <CodeCard key={i} item={dx} type="diagnosis" />
           ))}
         </div>
       )}
 
-      {/* PROCEDURES */}
       {procedures.length > 0 && (
         <div className="r-section">
-          <h4 className="r-section-title">Procedures (CPT)</h4>
+          <h4 className="r-section-title">Procedure Details</h4>
           {procedures.map((proc: any, i: number) => (
             <CodeCard key={i} item={proc} type="procedure" />
           ))}
         </div>
       )}
 
-      {/* E/M CALCULATION */}
       {em && (
         <div className="r-section">
           <h4 className="r-section-title">E/M Level Calculation</h4>
@@ -81,22 +157,39 @@ export default function CodingView({ data }: Props) {
               <span>Risk</span>
             </div>
             <div className="r-em-row">
-              <span>{em.method || '—'}</span>
-              <span>{em.problems || '—'}</span>
-              <span>{em.data || '—'}</span>
-              <span>{em.risk || '—'}</span>
+              <span>{em.method || '\u2014'}</span>
+              <span>{em.problems || '\u2014'}</span>
+              <span>{em.data || '\u2014'}</span>
+              <span>{em.risk || '\u2014'}</span>
             </div>
           </div>
           <div className="r-em-result">
             <span className="r-label">Level</span>
-            <span className="r-badge r-badge-blue">{em.level || '—'}</span>
+            <span className="r-badge r-badge-blue">{em.level || '\u2014'}</span>
             <span className="r-label">Code</span>
-            <span className="r-code-value r-code-value-sm">{em.code || '—'}</span>
+            <span className="r-code-value r-code-value-sm">{em.code || '\u2014'}</span>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* CODING NOTES */}
+/* ── Issues tab ───────────────────────────────────────────────── */
+function IssuesTab({ data }: Props) {
+  const notes = data?.coding_notes || [];
+  const queries = data?.queries_needed || [];
+
+  if (notes.length === 0 && queries.length === 0) {
+    return (
+      <div className="r-tab-inner">
+        <div className="r-empty-success">No coding issues or queries</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="r-tab-inner">
       {notes.length > 0 && (
         <div className="r-alert r-alert-info">
           <h5>Coding Notes</h5>
@@ -105,8 +198,6 @@ export default function CodingView({ data }: Props) {
           </ul>
         </div>
       )}
-
-      {/* QUERIES NEEDED */}
       {queries.length > 0 && (
         <div className="r-alert r-alert-warning">
           <h5>Queries for Provider</h5>
@@ -115,6 +206,29 @@ export default function CodingView({ data }: Props) {
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────── */
+export default function CodingView({ data }: Props) {
+  if (!data) return null;
+
+  const queries = data?.queries_needed || [];
+  const notes = data?.coding_notes || [];
+  const issueCount = queries.length + notes.length;
+
+  return (
+    <div className="renderer-container">
+      <Tabs tabs={[
+        { label: 'Overview', content: <OverviewTab data={data} /> },
+        { label: 'Details', content: <DetailsTab data={data} /> },
+        {
+          label: 'Issues',
+          count: issueCount,
+          content: issueCount > 0 ? <IssuesTab data={data} /> : null,
+        },
+      ]} />
     </div>
   );
 }

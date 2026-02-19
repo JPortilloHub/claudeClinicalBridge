@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Tabs from './Tabs';
 
 interface Props { data: any; }
 
@@ -10,23 +11,18 @@ function likelihoodColor(l: string | undefined): string {
   return 'r-likelihood-low';
 }
 
-export default function PriorAuthView({ data }: Props) {
+/* ── Overview tab ─────────────────────────────────────────────── */
+function OverviewTab({ data }: Props) {
   const proc = data?.procedure;
   const required = data?.prior_auth_required;
-  const criteria = data?.criteria_assessment;
-  const checklist = data?.documentation_checklist;
-  const summary = data?.medical_necessity_summary;
   const likelihood = data?.approval_likelihood;
   const rationale = data?.approval_likelihood_rationale;
-  const actions = data?.recommended_actions || [];
-  const appeal = data?.appeal_considerations || [];
-
-  const met = criteria?.criteria_met || [];
-  const notMet = criteria?.criteria_not_met || [];
+  const met = data?.criteria_assessment?.criteria_met || [];
+  const notMet = data?.criteria_assessment?.criteria_not_met || [];
 
   return (
-    <div className="renderer-container">
-      {/* PROCEDURE HEADER */}
+    <div className="r-tab-inner">
+      {/* Procedure header */}
       {proc && (
         <div className="r-section">
           <div className="r-proc-header">
@@ -39,13 +35,13 @@ export default function PriorAuthView({ data }: Props) {
         </div>
       )}
 
-      {/* PRIOR AUTH REQUIRED INDICATOR */}
+      {/* Auth required indicator */}
       <div className={`r-auth-required ${required ? 'r-auth-yes' : 'r-auth-no'}`}>
         <span className="r-auth-icon">{required ? '!' : '\u2713'}</span>
         <span>Prior Authorization {required ? 'Required' : 'Not Required'}</span>
       </div>
 
-      {/* APPROVAL LIKELIHOOD */}
+      {/* Approval likelihood */}
       {likelihood && (
         <div className="r-section">
           <h4 className="r-section-title">Approval Likelihood</h4>
@@ -56,7 +52,36 @@ export default function PriorAuthView({ data }: Props) {
         </div>
       )}
 
-      {/* CRITERIA ASSESSMENT */}
+      {/* Criteria summary */}
+      {(met.length > 0 || notMet.length > 0) && (
+        <div className="r-section">
+          <h4 className="r-section-title">Criteria Summary</h4>
+          <div className="r-criteria-summary">
+            <div className="r-criteria-count r-criteria-count-met">
+              <span className="r-criteria-num">{met.length}</span>
+              <span>Met</span>
+            </div>
+            <div className="r-criteria-count r-criteria-count-notmet">
+              <span className="r-criteria-num">{notMet.length}</span>
+              <span>Not Met</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Details tab ──────────────────────────────────────────────── */
+function DetailsTab({ data }: Props) {
+  const met = data?.criteria_assessment?.criteria_met || [];
+  const notMet = data?.criteria_assessment?.criteria_not_met || [];
+  const checklist = data?.documentation_checklist;
+  const summary = data?.medical_necessity_summary;
+
+  return (
+    <div className="r-tab-inner">
+      {/* Criteria assessment */}
       {(met.length > 0 || notMet.length > 0) && (
         <div className="r-section">
           <h4 className="r-section-title">Criteria Assessment</h4>
@@ -95,7 +120,7 @@ export default function PriorAuthView({ data }: Props) {
         </div>
       )}
 
-      {/* DOCUMENTATION CHECKLIST */}
+      {/* Documentation checklist */}
       {checklist && (
         <div className="r-section">
           <h4 className="r-section-title">Documentation Checklist</h4>
@@ -122,15 +147,33 @@ export default function PriorAuthView({ data }: Props) {
         </div>
       )}
 
-      {/* MEDICAL NECESSITY SUMMARY */}
+      {/* Medical necessity */}
       {summary && (
         <div className="r-section">
           <h4 className="r-section-title">Medical Necessity Summary</h4>
           <p className="r-text-block">{summary}</p>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* RECOMMENDED ACTIONS */}
+/* ── Issues tab ───────────────────────────────────────────────── */
+function IssuesTab({ data }: Props) {
+  const actions = data?.recommended_actions || [];
+  const appeal = data?.appeal_considerations || [];
+  const notMet = data?.criteria_assessment?.criteria_not_met || [];
+
+  if (actions.length === 0 && appeal.length === 0 && notMet.length === 0) {
+    return (
+      <div className="r-tab-inner">
+        <div className="r-empty-success">No actions needed</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="r-tab-inner">
       {actions.length > 0 && (
         <div className="r-alert r-alert-info">
           <h5>Recommended Actions</h5>
@@ -140,7 +183,6 @@ export default function PriorAuthView({ data }: Props) {
         </div>
       )}
 
-      {/* APPEAL CONSIDERATIONS */}
       {appeal.length > 0 && (
         <div className="r-section">
           <h4 className="r-section-title">Appeal Considerations</h4>
@@ -149,6 +191,29 @@ export default function PriorAuthView({ data }: Props) {
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────── */
+export default function PriorAuthView({ data }: Props) {
+  if (!data) return null;
+
+  const actions = data?.recommended_actions || [];
+  const notMet = data?.criteria_assessment?.criteria_not_met || [];
+  const issueCount = actions.length + notMet.length;
+
+  return (
+    <div className="renderer-container">
+      <Tabs tabs={[
+        { label: 'Overview', content: <OverviewTab data={data} /> },
+        { label: 'Details', content: <DetailsTab data={data} /> },
+        {
+          label: 'Issues',
+          count: issueCount,
+          content: issueCount > 0 ? <IssuesTab data={data} /> : null,
+        },
+      ]} />
     </div>
   );
 }

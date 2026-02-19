@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Tabs from './Tabs';
 
 interface Props { data: any; }
 
@@ -24,19 +25,16 @@ function qualityStatusColor(s: string | undefined): string {
   return 'r-status-fail';
 }
 
-export default function QualityView({ data }: Props) {
+/* ── Overview tab ─────────────────────────────────────────────── */
+function OverviewTab({ data }: Props) {
   const status = data?.overall_quality;
   const score = data?.quality_score;
   const ready = data?.ready_for_submission;
   const dims = data?.dimensions;
-  const critical = data?.critical_issues || [];
-  const warnings = data?.warnings || [];
-  const improvements = data?.improvements || [];
-  const trace = data?.traceability;
 
   return (
-    <div className="renderer-container">
-      {/* QUALITY HEADER */}
+    <div className="r-tab-inner">
+      {/* Quality header */}
       <div className={`r-status-banner ${qualityStatusColor(status)}`}>
         <div className="r-status-banner-items">
           <div className="r-status-item">
@@ -56,7 +54,7 @@ export default function QualityView({ data }: Props) {
         </div>
       </div>
 
-      {/* DIMENSION SCORES */}
+      {/* Dimension scores */}
       {dims && typeof dims === 'object' && (
         <div className="r-section">
           <h4 className="r-section-title">Quality Dimensions</h4>
@@ -67,40 +65,18 @@ export default function QualityView({ data }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* CRITICAL ISSUES */}
-      <div className="r-section">
-        <h4 className="r-section-title">Critical Issues</h4>
-        {critical.length === 0 ? (
-          <div className="r-empty-success">No critical issues found</div>
-        ) : (
-          <div className="r-alert r-alert-danger">
-            <ul className="r-list">
-              {critical.map((issue: string, i: number) => <li key={i}>{issue}</li>)}
-            </ul>
-          </div>
-        )}
-      </div>
+/* ── Details tab ──────────────────────────────────────────────── */
+function DetailsTab({ data }: Props) {
+  const improvements = data?.improvements || [];
+  const trace = data?.traceability;
 
-      {/* WARNINGS */}
-      {warnings.length > 0 && (
-        <div className="r-section">
-          <h4 className="r-section-title">Warnings ({warnings.length})</h4>
-          {warnings.map((w: any, i: number) => (
-            <div key={i} className="r-card r-issue-card r-issue-warning">
-              <div className="r-card-header">
-                {w.category && <span className="r-badge r-badge-yellow">{w.category}</span>}
-              </div>
-              <p className="r-card-detail">{w.description || (typeof w === 'string' ? w : JSON.stringify(w))}</p>
-              {w.recommendation && (
-                <p className="r-card-remediation"><strong>Recommendation:</strong> {w.recommendation}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* IMPROVEMENTS */}
+  return (
+    <div className="r-tab-inner">
+      {/* Improvements */}
       {improvements.length > 0 && (
         <div className="r-section">
           <h4 className="r-section-title">Suggested Improvements</h4>
@@ -110,7 +86,7 @@ export default function QualityView({ data }: Props) {
         </div>
       )}
 
-      {/* TRACEABILITY */}
+      {/* Traceability */}
       {trace && (
         <div className="r-section">
           <h4 className="r-section-title">Traceability</h4>
@@ -132,6 +108,75 @@ export default function QualityView({ data }: Props) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Issues tab ───────────────────────────────────────────────── */
+function IssuesTab({ data }: Props) {
+  const critical = data?.critical_issues || [];
+  const warnings = data?.warnings || [];
+
+  if (critical.length === 0 && warnings.length === 0) {
+    return (
+      <div className="r-tab-inner">
+        <div className="r-empty-success">No issues found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="r-tab-inner">
+      {/* Critical issues */}
+      {critical.length > 0 && (
+        <div className="r-alert r-alert-danger">
+          <h5>Critical Issues</h5>
+          <ul className="r-list">
+            {critical.map((issue: string, i: number) => <li key={i}>{issue}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div className="r-section">
+          <h4 className="r-section-title">Warnings</h4>
+          {warnings.map((w: any, i: number) => (
+            <div key={i} className="r-card r-issue-card r-issue-warning">
+              <div className="r-card-header">
+                {w.category && <span className="r-badge r-badge-yellow">{w.category}</span>}
+              </div>
+              <p className="r-card-detail">{w.description || (typeof w === 'string' ? w : JSON.stringify(w))}</p>
+              {w.recommendation && (
+                <p className="r-card-remediation"><strong>Recommendation:</strong> {w.recommendation}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────── */
+export default function QualityView({ data }: Props) {
+  if (!data) return null;
+
+  const critical = data?.critical_issues || [];
+  const warnings = data?.warnings || [];
+  const issueCount = critical.length + warnings.length;
+
+  return (
+    <div className="renderer-container">
+      <Tabs tabs={[
+        { label: 'Overview', content: <OverviewTab data={data} /> },
+        { label: 'Details', content: <DetailsTab data={data} /> },
+        {
+          label: 'Issues',
+          count: issueCount,
+          content: <IssuesTab data={data} />,
+        },
+      ]} />
     </div>
   );
 }

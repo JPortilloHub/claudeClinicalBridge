@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Tabs from './Tabs';
 
 interface Props { data: any; }
 
@@ -33,16 +34,84 @@ function SectionLabel({ text }: { text: string }) {
   return <h5 className="r-sub-label">{text}</h5>;
 }
 
-export default function DocumentationView({ data }: Props) {
+/* ── Overview tab ─────────────────────────────────────────────── */
+function OverviewTab({ data }: Props) {
+  const subj = data?.subjective;
+  const assess = data?.assessment;
+  const plan = data?.plan;
+
+  return (
+    <div className="r-tab-inner">
+      {/* Chief complaint summary card */}
+      {subj?.chief_complaint && (
+        <div className="r-highlight-box">
+          <span className="r-label">Chief Complaint</span>
+          <p className="r-value-lg">{subj.chief_complaint}</p>
+        </div>
+      )}
+
+      {/* Completeness overview */}
+      <div className="r-overview-grid">
+        <div className="r-overview-item">
+          <span className="r-overview-icon r-soap-s-icon">S</span>
+          <span className="r-overview-label">Subjective</span>
+          <span className={`r-badge ${subj ? 'r-badge-green' : 'r-badge-gray'}`}>
+            {subj ? 'Complete' : 'Missing'}
+          </span>
+        </div>
+        <div className="r-overview-item">
+          <span className="r-overview-icon r-soap-o-icon">O</span>
+          <span className="r-overview-label">Objective</span>
+          <span className={`r-badge ${data?.objective ? 'r-badge-green' : 'r-badge-gray'}`}>
+            {data?.objective ? 'Complete' : 'Missing'}
+          </span>
+        </div>
+        <div className="r-overview-item">
+          <span className="r-overview-icon r-soap-a-icon">A</span>
+          <span className="r-overview-label">Assessment</span>
+          <span className={`r-badge ${assess?.length ? 'r-badge-green' : 'r-badge-gray'}`}>
+            {assess?.length ? `${assess.length} diagnoses` : 'Missing'}
+          </span>
+        </div>
+        <div className="r-overview-item">
+          <span className="r-overview-icon r-soap-p-icon">P</span>
+          <span className="r-overview-label">Plan</span>
+          <span className={`r-badge ${plan?.length ? 'r-badge-green' : 'r-badge-gray'}`}>
+            {plan?.length ? `${plan.length} items` : 'Missing'}
+          </span>
+        </div>
+      </div>
+
+      {/* Assessment summary cards */}
+      {Array.isArray(assess) && assess.length > 0 && (
+        <div className="r-section">
+          <h4 className="r-section-title">Assessment Summary</h4>
+          {assess.map((dx: any, i: number) => (
+            <div key={i} className="r-card">
+              <div className="r-card-header">
+                {dx.icd10_hint && <span className="r-badge r-badge-blue">{dx.icd10_hint}</span>}
+                <strong>{dx.diagnosis || `Diagnosis ${i + 1}`}</strong>
+              </div>
+              {dx.clinical_reasoning && (
+                <p className="r-card-detail">{dx.clinical_reasoning}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Details tab ──────────────────────────────────────────────── */
+function DetailsTab({ data }: Props) {
   const subj = data?.subjective;
   const obj = data?.objective;
   const assess = data?.assessment;
   const plan = data?.plan;
-  const gaps = data?.documentation_gaps;
-  const hints = data?.coding_hints;
 
   return (
-    <div className="renderer-container">
+    <div className="r-tab-inner">
       {/* SUBJECTIVE */}
       {subj && (
         <div className="r-section r-soap-s">
@@ -80,13 +149,13 @@ export default function DocumentationView({ data }: Props) {
             {subj.medications && subj.medications.length > 0 && (
               <div className="r-inline-list-item">
                 <SectionLabel text="Medications" />
-                <BulletList items={subj.medications} icon="💊" />
+                <BulletList items={subj.medications} />
               </div>
             )}
             {subj.allergies && subj.allergies.length > 0 && (
               <div className="r-inline-list-item">
                 <SectionLabel text="Allergies" />
-                <BulletList items={subj.allergies} icon="⚠" />
+                <BulletList items={subj.allergies} />
               </div>
             )}
           </div>
@@ -183,22 +252,58 @@ export default function DocumentationView({ data }: Props) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* DOCUMENTATION GAPS */}
-      {gaps && Array.isArray(gaps) && gaps.length > 0 && (
+/* ── Issues tab ───────────────────────────────────────────────── */
+function IssuesTab({ data }: Props) {
+  const gaps = data?.documentation_gaps || [];
+  const hints = data?.coding_hints;
+
+  if (gaps.length === 0 && !hints) {
+    return (
+      <div className="r-tab-inner">
+        <div className="r-empty-success">No documentation issues found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="r-tab-inner">
+      {gaps.length > 0 && (
         <div className="r-alert r-alert-warning">
           <h5>Documentation Gaps</h5>
           <BulletList items={gaps} icon="!" />
         </div>
       )}
-
-      {/* CODING HINTS */}
       {hints && (
         <div className="r-alert r-alert-info">
           <h5>Coding Hints</h5>
           <KeyValueGrid obj={hints} />
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────── */
+export default function DocumentationView({ data }: Props) {
+  if (!data) return null;
+
+  const gaps = data?.documentation_gaps || [];
+
+  return (
+    <div className="renderer-container">
+      <Tabs tabs={[
+        { label: 'Overview', content: <OverviewTab data={data} /> },
+        { label: 'Details', content: <DetailsTab data={data} /> },
+        {
+          label: 'Issues',
+          count: gaps.length,
+          content: (gaps.length > 0 || data?.coding_hints) ? <IssuesTab data={data} /> : null,
+        },
+      ]} />
     </div>
   );
 }
