@@ -12,7 +12,7 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import structlog
 from structlog.dev import ConsoleRenderer
@@ -183,7 +183,7 @@ def setup_logging() -> None:
     )
 
     # Determine renderer based on format setting
-    renderer: Union[JSONRenderer, ConsoleRenderer]
+    renderer: JSONRenderer | ConsoleRenderer
     if settings.log_format == "json":
         renderer = structlog.processors.JSONRenderer()
     else:
