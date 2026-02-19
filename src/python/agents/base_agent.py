@@ -101,7 +101,7 @@ class BaseAgent:
         try:
             response = self.client.messages.create(
                 model=self.model,
-                max_tokens=4096,
+                max_tokens=settings.agent_max_tokens,
                 system=self._system_prompt,
                 messages=messages,
             )

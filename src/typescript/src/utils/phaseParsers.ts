@@ -3,6 +3,8 @@
  *
  * Each parser validates with Zod, extracts KPIs and summary,
  * and returns a structured ViewModel. On failure, returns a fallback.
+ *
+ * Handles truncated/cut-off JSON from LLM token limits via jsonRepair.
  */
 
 import type { PhaseViewModel, KPIItem } from '../types/schemas';
@@ -13,6 +15,7 @@ import {
   PriorAuthSchema,
   QualitySchema,
 } from '../types/schemas';
+import { parseJsonSafe } from './jsonRepair';
 
 /* ------------------------------------------------------------------ */
 /*  JSON extraction                                                    */
@@ -31,7 +34,35 @@ function extractJson(raw: string): string {
     return s.slice(firstBrace, lastBrace + 1);
   }
 
+  // For truncated JSON, there may be no closing brace — grab from first {
+  if (firstBrace !== -1) {
+    return s.slice(firstBrace);
+  }
+
   return s;
+}
+
+/**
+ * Parse JSON with repair support for truncated LLM outputs.
+ * Returns [parsed, wasTruncated] — wasTruncated is true if repair was needed.
+ */
+function safeParse(raw: string): [unknown, boolean] {
+  const extracted = extractJson(raw);
+
+  // Try direct parse first
+  try {
+    return [JSON.parse(extracted), false];
+  } catch {
+    // Direct parse failed — attempt repair
+  }
+
+  // Use repair utility
+  const repaired = parseJsonSafe(extracted);
+  if (repaired !== null) {
+    return [repaired, true];
+  }
+
+  return [null, true];
 }
 
 /* ------------------------------------------------------------------ */
@@ -49,54 +80,69 @@ function buildFallback(raw: string, error?: string): PhaseViewModel {
   };
 }
 
+/** Add a "partial data" KPI indicator when JSON was truncated */
+function addTruncationWarning(kpis: KPIItem[], wasTruncated: boolean): void {
+  if (wasTruncated) {
+    kpis.push({ label: 'Data', value: 'Partial', color: 'yellow' });
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Clinical Documentation parser                                      */
 /* ------------------------------------------------------------------ */
 
 export function parseClinicalDocumentation(raw: string): PhaseViewModel {
+  const [json, wasTruncated] = safeParse(raw);
+  if (json === null || typeof json !== 'object') {
+    return buildFallback(raw, 'Unable to parse documentation output');
+  }
+
   try {
-    const json = JSON.parse(extractJson(raw));
     const result = DocumentationSchema.safeParse(json);
-    const data = result.success ? result.data : json;
+    const data = result.success ? result.data : json as Record<string, unknown>;
 
     const kpis: KPIItem[] = [];
-    const subjective = data?.subjective;
-    if (subjective?.chief_complaint) {
-      kpis.push({ label: 'Chief Complaint', value: subjective.chief_complaint });
+    const subjective = (data as Record<string, unknown>)?.subjective as Record<string, unknown> | undefined;
+    const chiefComplaint = subjective?.chief_complaint as string | undefined;
+    if (chiefComplaint) {
+      kpis.push({ label: 'Chief Complaint', value: chiefComplaint });
     }
 
-    const assessment = data?.assessment;
+    const assessment = (data as Record<string, unknown>)?.assessment;
     if (Array.isArray(assessment)) {
       kpis.push({ label: 'Diagnoses', value: assessment.length, color: 'blue' });
     }
 
-    const gaps = data?.documentation_gaps;
+    const gaps = (data as Record<string, unknown>)?.documentation_gaps;
     if (Array.isArray(gaps) && gaps.length > 0) {
       kpis.push({ label: 'Doc Gaps', value: gaps.length, color: 'yellow' });
     } else {
       kpis.push({ label: 'Doc Gaps', value: 0, color: 'green' });
     }
 
-    const plan = data?.plan;
+    const plan = (data as Record<string, unknown>)?.plan;
     if (Array.isArray(plan)) {
       kpis.push({ label: 'Plan Items', value: plan.length, color: 'blue' });
     }
 
-    const summary = subjective?.chief_complaint
-      ? `SOAP note for: ${subjective.chief_complaint}`
+    addTruncationWarning(kpis, wasTruncated);
+
+    const summary = chiefComplaint
+      ? `SOAP note for: ${chiefComplaint}`
       : 'Clinical documentation structured as SOAP note';
 
+    const d = data as Record<string, unknown>;
     return {
       status: 'completed',
-      summary,
+      summary: wasTruncated ? summary + ' (partial output)' : summary,
       kpis,
       sections: [
-        { title: 'Subjective', content: data?.subjective },
-        { title: 'Objective', content: data?.objective },
-        { title: 'Assessment', content: data?.assessment },
-        { title: 'Plan', content: data?.plan },
-        { title: 'Documentation Gaps', content: data?.documentation_gaps },
-        { title: 'Coding Hints', content: data?.coding_hints },
+        { title: 'Subjective', content: d?.subjective },
+        { title: 'Objective', content: d?.objective },
+        { title: 'Assessment', content: d?.assessment },
+        { title: 'Plan', content: d?.plan },
+        { title: 'Documentation Gaps', content: d?.documentation_gaps },
+        { title: 'Coding Hints', content: d?.coding_hints },
       ].filter(s => s.content != null),
       raw: json,
     };
@@ -110,10 +156,15 @@ export function parseClinicalDocumentation(raw: string): PhaseViewModel {
 /* ------------------------------------------------------------------ */
 
 export function parseMedicalCoding(raw: string): PhaseViewModel {
+  const [json, wasTruncated] = safeParse(raw);
+  if (json === null || typeof json !== 'object') {
+    return buildFallback(raw, 'Unable to parse coding output');
+  }
+
   try {
-    const json = JSON.parse(extractJson(raw));
     const result = CodingSchema.safeParse(json);
-    const data = result.success ? result.data : json;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (result.success ? result.data : json) as any;
 
     const kpis: KPIItem[] = [];
     const diagnoses = data?.diagnoses || [];
@@ -131,6 +182,8 @@ export function parseMedicalCoding(raw: string): PhaseViewModel {
       kpis.push({ label: 'Queries', value: queries.length, color: 'yellow' });
     }
 
+    addTruncationWarning(kpis, wasTruncated);
+
     const primary = diagnoses.find((d: { sequencing?: string }) => d.sequencing === 'primary');
     const summary = primary?.description
       ? `Primary: ${primary.description} (${primary.code || ''})`
@@ -138,7 +191,7 @@ export function parseMedicalCoding(raw: string): PhaseViewModel {
 
     return {
       status: 'completed',
-      summary,
+      summary: wasTruncated ? summary + ' (partial output)' : summary,
       kpis,
       sections: [
         { title: 'Diagnoses', content: data?.diagnoses },
@@ -159,10 +212,15 @@ export function parseMedicalCoding(raw: string): PhaseViewModel {
 /* ------------------------------------------------------------------ */
 
 export function parseCompliance(raw: string): PhaseViewModel {
+  const [json, wasTruncated] = safeParse(raw);
+  if (json === null || typeof json !== 'object') {
+    return buildFallback(raw, 'Unable to parse compliance output');
+  }
+
   try {
-    const json = JSON.parse(extractJson(raw));
     const result = ComplianceSchema.safeParse(json);
-    const data = result.success ? result.data : json;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (result.success ? result.data : json) as any;
 
     const kpis: KPIItem[] = [];
     const status = data?.overall_status;
@@ -194,11 +252,13 @@ export function parseCompliance(raw: string): PhaseViewModel {
       kpis.push({ label: 'Risk', value: data.risk_level, color: statusColor });
     }
 
+    addTruncationWarning(kpis, wasTruncated);
+
     const summary = `${(status || 'Unknown').replace(/_/g, ' ')} - ${issues.length} issue(s) found`;
 
     return {
       status: 'completed',
-      summary,
+      summary: wasTruncated ? summary + ' (partial output)' : summary,
       kpis,
       sections: [
         { title: 'Code Validations', content: data?.code_validations },
@@ -218,10 +278,15 @@ export function parseCompliance(raw: string): PhaseViewModel {
 /* ------------------------------------------------------------------ */
 
 export function parsePriorAuth(raw: string): PhaseViewModel {
+  const [json, wasTruncated] = safeParse(raw);
+  if (json === null || typeof json !== 'object') {
+    return buildFallback(raw, 'Unable to parse prior auth output');
+  }
+
   try {
-    const json = JSON.parse(extractJson(raw));
     const result = PriorAuthSchema.safeParse(json);
-    const data = result.success ? result.data : json;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (result.success ? result.data : json) as any;
 
     const kpis: KPIItem[] = [];
 
@@ -246,6 +311,8 @@ export function parsePriorAuth(raw: string): PhaseViewModel {
     const notMet = data?.criteria_assessment?.criteria_not_met || [];
     kpis.push({ label: 'Criteria Met', value: `${met.length}/${met.length + notMet.length}`, color: notMet.length === 0 ? 'green' : 'yellow' });
 
+    addTruncationWarning(kpis, wasTruncated);
+
     const proc = data?.procedure;
     const summary = proc?.description
       ? `${proc.description}${proc.cpt_code ? ` (${proc.cpt_code})` : ''}`
@@ -253,7 +320,7 @@ export function parsePriorAuth(raw: string): PhaseViewModel {
 
     return {
       status: 'completed',
-      summary,
+      summary: wasTruncated ? summary + ' (partial output)' : summary,
       kpis,
       sections: [
         { title: 'Procedure', content: data?.procedure },
@@ -275,10 +342,15 @@ export function parsePriorAuth(raw: string): PhaseViewModel {
 /* ------------------------------------------------------------------ */
 
 export function parseQualityAssurance(raw: string): PhaseViewModel {
+  const [json, wasTruncated] = safeParse(raw);
+  if (json === null || typeof json !== 'object') {
+    return buildFallback(raw, 'Unable to parse quality assurance output');
+  }
+
   try {
-    const json = JSON.parse(extractJson(raw));
     const result = QualitySchema.safeParse(json);
-    const data = result.success ? result.data : json;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (result.success ? result.data : json) as any;
 
     const kpis: KPIItem[] = [];
 
@@ -313,13 +385,15 @@ export function parseQualityAssurance(raw: string): PhaseViewModel {
       kpis.push({ label: 'Critical', value: critical.length, color: 'red' });
     }
 
+    addTruncationWarning(kpis, wasTruncated);
+
     const summary = data?.quality_score != null
       ? `Quality score: ${data.quality_score}/100 - ${data?.ready_for_submission ? 'Ready' : 'Not ready'} for submission`
       : 'Quality assurance review';
 
     return {
       status: 'completed',
-      summary,
+      summary: wasTruncated ? summary + ' (partial output)' : summary,
       kpis,
       sections: [
         { title: 'Dimensions', content: data?.dimensions },
