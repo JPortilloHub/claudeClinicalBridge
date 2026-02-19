@@ -15,8 +15,6 @@ import pytest
 # Skip all tests in this module if fhir.resources is not installed
 pytest.importorskip("fhir.resources", reason="fhir.resources not installed")
 
-from src.python.utils.config import settings
-
 
 # Sample FHIR responses mimicking Epic sandbox data
 SAMPLE_PATIENT = {
@@ -42,7 +40,11 @@ SAMPLE_CONDITION = {
     },
     "code": {
         "coding": [
-            {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I10", "display": "Essential hypertension"}
+            {
+                "system": "http://hl7.org/fhir/sid/icd-10-cm",
+                "code": "I10",
+                "display": "Essential hypertension",
+            }
         ]
     },
     "subject": {"reference": "Patient/epic-T1001"},
@@ -52,12 +54,8 @@ SAMPLE_OBSERVATION = {
     "resourceType": "Observation",
     "id": "obs-001",
     "status": "final",
-    "category": [
-        {"coding": [{"code": "vital-signs"}]}
-    ],
-    "code": {
-        "coding": [{"code": "85354-9", "display": "Blood pressure"}]
-    },
+    "category": [{"coding": [{"code": "vital-signs"}]}],
+    "code": {"coding": [{"code": "85354-9", "display": "Blood pressure"}]},
     "valueQuantity": {"value": 160, "unit": "mmHg"},
     "subject": {"reference": "Patient/epic-T1001"},
 }
@@ -66,9 +64,7 @@ SAMPLE_MEDICATION_REQUEST = {
     "resourceType": "MedicationRequest",
     "id": "med-001",
     "status": "active",
-    "medicationCodeableConcept": {
-        "coding": [{"display": "Lisinopril 20mg"}]
-    },
+    "medicationCodeableConcept": {"coding": [{"display": "Lisinopril 20mg"}]},
     "subject": {"reference": "Patient/epic-T1001"},
 }
 
@@ -103,8 +99,13 @@ class TestEpicFHIRClientIntegration:
         mock_response.json.return_value = _bundle_response(SAMPLE_PATIENT)
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
+        with patch(
+            "src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response
+            ):
                 from src.python.mcp_servers.epic_fhir.client import EpicFHIRClient
 
                 client = EpicFHIRClient(
@@ -126,8 +127,13 @@ class TestEpicFHIRClientIntegration:
         mock_response.json.return_value = _bundle_response(SAMPLE_CONDITION)
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
+        with patch(
+            "src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response
+            ):
                 from src.python.mcp_servers.epic_fhir.client import EpicFHIRClient
 
                 client = EpicFHIRClient(
@@ -148,8 +154,13 @@ class TestEpicFHIRClientIntegration:
         mock_response.json.return_value = _bundle_response(SAMPLE_OBSERVATION)
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
+        with patch(
+            "src.python.mcp_servers.epic_fhir.client.EpicFHIRClient.authenticate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response
+            ):
                 from src.python.mcp_servers.epic_fhir.client import EpicFHIRClient
 
                 client = EpicFHIRClient(
@@ -217,7 +228,7 @@ class TestEpicFHIRErrorHandling:
                 client_id="bad-client",
             )
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 await client.authenticate()
 
     def test_empty_bundle_handling(self):

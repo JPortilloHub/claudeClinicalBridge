@@ -110,8 +110,16 @@ class ClinicalValidityReport:
 
 # ICD-10 codes requiring laterality (musculoskeletal, injuries, etc.)
 _LATERALITY_REQUIRED_PREFIXES = (
-    "M1", "M2", "S", "T",  # Musculoskeletal, injuries
-    "H0", "H1", "H2", "H3", "H4", "H5",  # Eye/ear
+    "M1",
+    "M2",
+    "S",
+    "T",  # Musculoskeletal, injuries
+    "H0",
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",  # Eye/ear
     "G5",  # Nerve
 )
 
@@ -153,7 +161,6 @@ def validate_clinical(
         return result
 
     icd10_codes = [c for c in predicted_codes if _is_icd10(c)]
-    cpt_codes = [c for c in predicted_codes if _is_cpt(c)]
 
     # Check specificity
     specificity_issues = _check_specificity(icd10_codes)
@@ -175,8 +182,8 @@ def validate_clinical(
         lat_ok = len(icd10_codes) - len(laterality_issues)
         result.laterality_score = max(0.0, lat_ok / len(icd10_codes))
 
-    result.plausibility_score = 1.0 if not conflict_issues else max(
-        0.0, 1.0 - len(conflict_issues) * 0.25
+    result.plausibility_score = (
+        1.0 if not conflict_issues else max(0.0, 1.0 - len(conflict_issues) * 0.25)
     )
 
     logger.info(
@@ -208,12 +215,14 @@ def _check_specificity(codes: list[str]) -> list[ValidityIssue]:
         # ICD-10-CM codes should generally be 3-7 characters
         # 3-character codes are category-level and usually need more specificity
         if len(clean) <= 3:
-            issues.append(ValidityIssue(
-                category="specificity",
-                code=code,
-                description=f"Code '{code}' is category-level only — needs higher specificity",
-                severity="warning",
-            ))
+            issues.append(
+                ValidityIssue(
+                    category="specificity",
+                    code=code,
+                    description=f"Code '{code}' is category-level only — needs higher specificity",
+                    severity="warning",
+                )
+            )
     return issues
 
 
@@ -228,16 +237,17 @@ def _check_laterality(codes: list[str], documentation: str) -> list[ValidityIssu
             # For simplicity, check if documentation mentions left/right
             doc_lower = documentation.lower()
             has_laterality_in_doc = any(
-                term in doc_lower
-                for term in ["left", "right", "bilateral", "unspecified"]
+                term in doc_lower for term in ["left", "right", "bilateral", "unspecified"]
             )
             if not has_laterality_in_doc and documentation:
-                issues.append(ValidityIssue(
-                    category="laterality",
-                    code=code,
-                    description=f"Code '{code}' may require laterality but none found in documentation",
-                    severity="warning",
-                ))
+                issues.append(
+                    ValidityIssue(
+                        category="laterality",
+                        code=code,
+                        description=f"Code '{code}' may require laterality but none found in documentation",
+                        severity="warning",
+                    )
+                )
     return issues
 
 
@@ -248,11 +258,13 @@ def _check_conflicts(codes: list[str]) -> list[ValidityIssue]:
 
     for prefix_a, prefix_b in _CONFLICTING_PAIRS:
         if prefix_a in code_prefixes and prefix_b in code_prefixes:
-            issues.append(ValidityIssue(
-                category="plausibility",
-                code=f"{prefix_a}+{prefix_b}",
-                description=f"Conflicting codes: {prefix_a}* and {prefix_b}* should not appear together",
-                severity="critical",
-            ))
+            issues.append(
+                ValidityIssue(
+                    category="plausibility",
+                    code=f"{prefix_a}+{prefix_b}",
+                    description=f"Conflicting codes: {prefix_a}* and {prefix_b}* should not appear together",
+                    severity="critical",
+                )
+            )
 
     return issues

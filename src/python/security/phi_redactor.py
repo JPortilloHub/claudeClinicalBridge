@@ -22,9 +22,9 @@ logger = get_logger(__name__)
 class RedactionMethod(Enum):
     """Method used to redact PHI."""
 
-    MASK = "mask"       # Replace with [REDACTED]
-    HASH = "hash"       # Replace with SHA-256 hash prefix
-    REMOVE = "remove"   # Remove entirely
+    MASK = "mask"  # Replace with [REDACTED]
+    HASH = "hash"  # Replace with SHA-256 hash prefix
+    REMOVE = "remove"  # Remove entirely
 
 
 class PHICategory(Enum):
@@ -65,43 +65,49 @@ _PHI_PATTERNS: list[tuple[PHICategory, re.Pattern[str]]] = [
     # SSN: 123-45-6789 or 123456789
     (PHICategory.SSN, re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
     (PHICategory.SSN, re.compile(r"\b\d{9}\b(?!\d)")),
-
     # Phone: (123) 456-7890, 123-456-7890, 123.456.7890
     (PHICategory.PHONE, re.compile(r"\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b")),
-
     # Email
     (PHICategory.EMAIL, re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")),
-
     # IP Address (v4)
-    (PHICategory.IP_ADDRESS, re.compile(
-        r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b"
-    )),
-
+    (
+        PHICategory.IP_ADDRESS,
+        re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b"),
+    ),
     # MRN patterns: MRN-12345, MRN: 12345, MRN#12345
     (PHICategory.MRN, re.compile(r"\bMRN[#:\s-]*\d{4,10}\b", re.IGNORECASE)),
-
     # Account numbers: ACCT-12345, Account: 12345
-    (PHICategory.ACCOUNT_NUMBER, re.compile(r"\b(?:ACCT|Account)[#:\s-]*\d{4,12}\b", re.IGNORECASE)),
-
+    (
+        PHICategory.ACCOUNT_NUMBER,
+        re.compile(r"\b(?:ACCT|Account)[#:\s-]*\d{4,12}\b", re.IGNORECASE),
+    ),
     # Dates: MM/DD/YYYY, MM-DD-YYYY, YYYY-MM-DD, Month DD YYYY
-    (PHICategory.DATE, re.compile(
-        r"\b(?:0[1-9]|1[0-2])[/-](?:0[1-9]|[12]\d|3[01])[/-](?:19|20)\d{2}\b"
-    )),
-    (PHICategory.DATE, re.compile(
-        r"\b(?:19|20)\d{2}[/-](?:0[1-9]|1[0-2])[/-](?:0[1-9]|[12]\d|3[01])\b"
-    )),
-    (PHICategory.DATE, re.compile(
-        r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-        r"\s+\d{1,2},?\s+(?:19|20)\d{2}\b",
-        re.IGNORECASE,
-    )),
-
+    (
+        PHICategory.DATE,
+        re.compile(r"\b(?:0[1-9]|1[0-2])[/-](?:0[1-9]|[12]\d|3[01])[/-](?:19|20)\d{2}\b"),
+    ),
+    (
+        PHICategory.DATE,
+        re.compile(r"\b(?:19|20)\d{2}[/-](?:0[1-9]|1[0-2])[/-](?:0[1-9]|[12]\d|3[01])\b"),
+    ),
+    (
+        PHICategory.DATE,
+        re.compile(
+            r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+            r"\s+\d{1,2},?\s+(?:19|20)\d{2}\b",
+            re.IGNORECASE,
+        ),
+    ),
     # Age over 89
-    (PHICategory.AGE_OVER_89, re.compile(r"\b(?:9\d|[1-9]\d{2,})[\s-]*(?:y/?o|year|yr)\b", re.IGNORECASE)),
-
+    (
+        PHICategory.AGE_OVER_89,
+        re.compile(r"\b(?:9\d|[1-9]\d{2,})[\s-]*(?:y/?o|year|yr)\b", re.IGNORECASE),
+    ),
     # ZIP code (requires "ZIP" or "zip code" prefix to avoid false positives on bare 5-digit numbers)
-    (PHICategory.ZIP_CODE, re.compile(r"\b(?:ZIP|zip\s*code)[#:\s-]*\d{5}(?:-\d{4})?\b", re.IGNORECASE)),
-
+    (
+        PHICategory.ZIP_CODE,
+        re.compile(r"\b(?:ZIP|zip\s*code)[#:\s-]*\d{5}(?:-\d{4})?\b", re.IGNORECASE),
+    ),
     # URL/web addresses
     (PHICategory.URL, re.compile(r"https?://[^\s<>\"]+", re.IGNORECASE)),
 ]
@@ -142,12 +148,14 @@ def redact_phi(
             original_value = match.group()
             replacement = _get_replacement(original_value, category, method)
 
-            result.redactions.append({
-                "category": category.value,
-                "replacement": replacement,
-            })
+            result.redactions.append(
+                {
+                    "category": category.value,
+                    "replacement": replacement,
+                }
+            )
 
-            redacted = redacted[:match.start()] + replacement + redacted[match.end():]
+            redacted = redacted[: match.start()] + replacement + redacted[match.end() :]
 
     result.redacted_length = len(redacted)
 
@@ -168,6 +176,7 @@ def _get_replacement(value: str, category: PHICategory, method: RedactionMethod)
 
     if method == RedactionMethod.HASH:
         import hashlib
+
         hash_val = hashlib.sha256(value.encode()).hexdigest()[:8]
         return f"[{category.value.upper()}:{hash_val}]"
 
@@ -211,8 +220,7 @@ def redact_dict(
             redacted[key] = redact_dict(value, method)
         elif isinstance(value, list):
             redacted[key] = [
-                redact_phi(item, method)[0] if isinstance(item, str) else item
-                for item in value
+                redact_phi(item, method)[0] if isinstance(item, str) else item for item in value
             ]
         else:
             redacted[key] = value

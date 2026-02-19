@@ -133,9 +133,7 @@ async def check_auth_requirements(payer: str, cpt_code: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def get_documentation_requirements(
-    payer: str, cpt_code: str
-) -> dict[str, Any]:
+async def get_documentation_requirements(payer: str, cpt_code: str) -> dict[str, Any]:
     """
     Get required documentation elements for a procedure and payer.
 

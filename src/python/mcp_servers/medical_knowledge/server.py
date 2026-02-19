@@ -508,7 +508,7 @@ async def init():
             embedding_dim=embedder.embedding_dim,
         )
 
-        search_engine = get_search_engine()
+        get_search_engine()
         logger.info("Search engine ready")
 
         for code_type in ["icd10", "cpt"]:

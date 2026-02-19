@@ -134,44 +134,52 @@ def audit_hallucinations(
         result.items_checked += 1
         # Codes are checked via token overlap against the note
         if not _is_traceable(code, note_lower, note_tokens):
-            result.findings.append(HallucinationFinding(
-                category="code",
-                content=code,
-                explanation=f"Code '{code}' not traceable to source note",
-            ))
+            result.findings.append(
+                HallucinationFinding(
+                    category="code",
+                    content=code,
+                    explanation=f"Code '{code}' not traceable to source note",
+                )
+            )
 
     # Check diagnoses
     if output_diagnoses:
         for diag in output_diagnoses:
             result.items_checked += 1
             if not _is_traceable(diag, note_lower, note_tokens):
-                result.findings.append(HallucinationFinding(
-                    category="diagnosis",
-                    content=diag,
-                    explanation=f"Diagnosis '{diag}' not traceable to source note",
-                ))
+                result.findings.append(
+                    HallucinationFinding(
+                        category="diagnosis",
+                        content=diag,
+                        explanation=f"Diagnosis '{diag}' not traceable to source note",
+                    )
+                )
 
     # Check findings
     if output_findings:
         for finding in output_findings:
             result.items_checked += 1
             if not _is_traceable(finding, note_lower, note_tokens):
-                result.findings.append(HallucinationFinding(
-                    category="finding",
-                    content=finding,
-                    explanation=f"Finding '{finding}' not traceable to source note",
-                ))
+                result.findings.append(
+                    HallucinationFinding(
+                        category="finding",
+                        content=finding,
+                        explanation=f"Finding '{finding}' not traceable to source note",
+                    )
+                )
 
     # Check medications
     if output_medications:
         for med in output_medications:
             result.items_checked += 1
             if not _is_traceable(med, note_lower, note_tokens):
-                result.findings.append(HallucinationFinding(
-                    category="medication",
-                    content=med,
-                    explanation=f"Medication '{med}' not traceable to source note",
-                ))
+                result.findings.append(
+                    HallucinationFinding(
+                        category="medication",
+                        content=med,
+                        explanation=f"Medication '{med}' not traceable to source note",
+                    )
+                )
 
     logger.info(
         "hallucination_audit_completed",

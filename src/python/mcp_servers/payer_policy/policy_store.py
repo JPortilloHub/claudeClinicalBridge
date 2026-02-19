@@ -7,10 +7,11 @@ documentation requirements, and medical necessity criteria.
 
 import json
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -30,15 +31,11 @@ class PayerPolicy(BaseModel):
     documentation_requirements: list[str] = Field(
         ..., description="Required documentation elements"
     )
-    medical_necessity_criteria: list[str] = Field(
-        ..., description="Medical necessity criteria"
-    )
+    medical_necessity_criteria: list[str] = Field(..., description="Medical necessity criteria")
     prior_auth_criteria: list[str] | None = Field(
         None, description="Specific prior auth criteria (if applicable)"
     )
-    reimbursement_rate: float | None = Field(
-        None, description="Reimbursement rate in USD"
-    )
+    reimbursement_rate: float | None = Field(None, description="Reimbursement rate in USD")
     effective_date: str = Field(..., description="Policy effective date (YYYY-MM-DD)")
     notes: str | None = Field(None, description="Additional notes")
 
@@ -64,7 +61,9 @@ class PolicyStore:
         logger.info("policy_store_initialized", db_path=self.db_path)
 
     @contextmanager
-    def _get_connection(self, row_factory: bool = False) -> Generator[sqlite3.Connection, None, None]:
+    def _get_connection(
+        self, row_factory: bool = False
+    ) -> Generator[sqlite3.Connection, None, None]:
         """
         Context manager for SQLite connections.
 
@@ -101,9 +100,7 @@ class PolicyStore:
             policy_dict["medical_necessity_criteria"]
         )
         if policy_dict["prior_auth_criteria"]:
-            policy_dict["prior_auth_criteria"] = json.loads(
-                policy_dict["prior_auth_criteria"]
-            )
+            policy_dict["prior_auth_criteria"] = json.loads(policy_dict["prior_auth_criteria"])
 
         # Remove DB-specific fields
         for field in ["id", "created_at", "updated_at"]:
@@ -172,7 +169,7 @@ class PolicyStore:
         if not json_file.exists():
             raise FileNotFoundError(f"Policy JSON not found: {json_path}")
 
-        with open(json_file, "r") as f:
+        with open(json_file) as f:
             data = json.load(f)
 
         policies = data.get("policies", [])

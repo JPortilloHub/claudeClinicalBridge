@@ -6,7 +6,6 @@ Supports hierarchical code relationships and configurable search parameters.
 """
 
 import hashlib
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -140,8 +139,7 @@ class MedicalCodeSearch:
         """
         if not self._collection_exists(collection_name):
             raise ValueError(
-                f"Collection '{collection_name}' does not exist. "
-                "Call create_collection() first."
+                f"Collection '{collection_name}' does not exist. Call create_collection() first."
             )
 
         logger.info(
@@ -152,7 +150,7 @@ class MedicalCodeSearch:
 
         # Prepare points for Qdrant
         points = []
-        for idx, code_data in enumerate(codes_with_embeddings):
+        for _idx, code_data in enumerate(codes_with_embeddings):
             embedding = code_data.get("embedding")
             if not embedding:
                 logger.warning("Code missing embedding, skipping", code=code_data.get("code"))
@@ -427,7 +425,9 @@ class MedicalCodeSearch:
             )
 
             # Defensive unpacking of results tuple
-            children_points, _ = children_results if children_results and len(children_results) == 2 else ([], None)
+            children_points, _ = (
+                children_results if children_results and len(children_results) == 2 else ([], None)
+            )
 
             if children_points and len(children_points) > 0:
                 result["children"] = [point.payload for point in children_points]
@@ -528,4 +528,6 @@ if __name__ == "__main__":
             print()
     else:
         print("Usage: python -m src.python.mcp_servers.medical_knowledge.search <query>")
-        print("Example: python -m src.python.mcp_servers.medical_knowledge.search 'high blood sugar'")
+        print(
+            "Example: python -m src.python.mcp_servers.medical_knowledge.search 'high blood sugar'"
+        )

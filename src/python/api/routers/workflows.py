@@ -1,6 +1,5 @@
 """Workflow CRUD router — create, list, get, delete workflows."""
 
-from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -73,12 +72,7 @@ def list_workflows(
     if status:
         query = query.filter(Workflow.status == status)
 
-    workflows = (
-        query.order_by(Workflow.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    workflows = query.order_by(Workflow.created_at.desc()).offset(skip).limit(limit).all()
     return workflows
 
 

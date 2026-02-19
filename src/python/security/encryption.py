@@ -70,9 +70,7 @@ class EncryptionManager:
                 self._method = "fernet"
             else:
                 # Derive a Fernet-compatible key
-                derived = base64.urlsafe_b64encode(
-                    hashlib.sha256(self._raw_key).digest()
-                )
+                derived = base64.urlsafe_b64encode(hashlib.sha256(self._raw_key).digest())
                 self._fernet = Fernet(derived)
                 self._method = "fernet"
         except ImportError:
@@ -141,7 +139,7 @@ class EncryptionManager:
         """HMAC-based obfuscation fallback (not cryptographically secure encryption)."""
         nonce = os.urandom(16)
         keystream = self._derive_keystream(nonce, len(data))
-        obfuscated = bytes(a ^ b for a, b in zip(data, keystream))
+        obfuscated = bytes(a ^ b for a, b in zip(data, keystream, strict=False))
         payload = nonce + obfuscated
         return base64.urlsafe_b64encode(payload).decode("utf-8")
 
@@ -151,7 +149,7 @@ class EncryptionManager:
         nonce = payload[:16]
         obfuscated = payload[16:]
         keystream = self._derive_keystream(nonce, len(obfuscated))
-        plaintext = bytes(a ^ b for a, b in zip(obfuscated, keystream))
+        plaintext = bytes(a ^ b for a, b in zip(obfuscated, keystream, strict=False))
         return plaintext.decode("utf-8")
 
     def _derive_keystream(self, nonce: bytes, length: int) -> bytes:

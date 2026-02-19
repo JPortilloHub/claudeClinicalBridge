@@ -57,11 +57,13 @@ jobs:
           pip install --upgrade pip
           pip install pytest pytest-cov pytest-asyncio pytest-mock
           pip install anthropic pydantic pydantic-settings structlog python-dotenv
-          pip install cryptography httpx tenacity
+          pip install cryptography httpx tenacity PyJWT
           # Optional: install if available (may fail on some platforms)
           pip install numpy || true
 
       - name: Run unit tests
+        env:
+          ANTHROPIC_API_KEY: "test-key-for-ci"
         run: |
           python -m pytest tests/unit/test_security/ \
             tests/unit/test_evaluation/ \
@@ -103,9 +105,11 @@ jobs:
           pip install pytest pytest-asyncio pytest-mock
           pip install anthropic pydantic pydantic-settings structlog python-dotenv
           pip install fhirclient fhir.resources httpx numpy
-          pip install cryptography tenacity
+          pip install cryptography tenacity PyJWT
 
       - name: Run FHIR MCP server tests
+        env:
+          ANTHROPIC_API_KEY: "test-key-for-ci"
         run: |
           python -m pytest tests/unit/test_mcp_servers/ \
             -o "addopts=" \

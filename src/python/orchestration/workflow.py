@@ -8,7 +8,8 @@ step execution for agent pipeline phases.
 from __future__ import annotations
 
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from src.python.orchestration.state import PhaseResult
 from src.python.utils.config import settings

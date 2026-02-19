@@ -39,8 +39,7 @@ def load_skill(skill_name: str) -> str:
     """
     if skill_name not in AVAILABLE_SKILLS:
         raise ValueError(
-            f"Unknown skill: '{skill_name}'. "
-            f"Available skills: {list(AVAILABLE_SKILLS.keys())}"
+            f"Unknown skill: '{skill_name}'. Available skills: {list(AVAILABLE_SKILLS.keys())}"
         )
 
     skill_file = SKILLS_DIR / AVAILABLE_SKILLS[skill_name]
@@ -97,10 +96,7 @@ def list_available_skills() -> dict[str, str]:
     Returns:
         Dictionary mapping skill names to file paths
     """
-    return {
-        name: str(SKILLS_DIR / filename)
-        for name, filename in AVAILABLE_SKILLS.items()
-    }
+    return {name: str(SKILLS_DIR / filename) for name, filename in AVAILABLE_SKILLS.items()}
 
 
 def get_skill_summary(skill_name: str) -> dict[str, str]:

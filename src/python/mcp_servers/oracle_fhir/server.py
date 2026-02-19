@@ -10,12 +10,6 @@ import json
 import threading
 from typing import Any
 
-from fhir.resources.bundle import Bundle
-from fhir.resources.condition import Condition
-from fhir.resources.encounter import Encounter
-from fhir.resources.medicationrequest import MedicationRequest
-from fhir.resources.observation import Observation
-from fhir.resources.patient import Patient
 from mcp.server.fastmcp import FastMCP
 
 from src.python.mcp_servers.oracle_fhir.client import OracleHealthFHIRClient
@@ -109,7 +103,7 @@ async def search_patients(
         # Convert FHIR Patient resources to dicts (Pydantic v2 compatible)
         results = []
         for patient in patients:
-            if hasattr(patient, 'model_dump'):
+            if hasattr(patient, "model_dump"):
                 results.append(patient.model_dump(exclude_none=True))
             else:
                 results.append(patient.dict(exclude_none=True))
@@ -157,7 +151,7 @@ async def get_patient(patient_id: str) -> dict[str, Any]:
         patient = await client.get_patient(patient_id)
 
         # Convert to dict (Pydantic v2 compatible)
-        if hasattr(patient, 'model_dump'):
+        if hasattr(patient, "model_dump"):
             result = patient.model_dump(exclude_none=True)
         else:
             result = patient.dict(exclude_none=True)
@@ -210,14 +204,12 @@ async def get_patient_encounters(
     )
 
     try:
-        encounters = await client.get_patient_encounters(
-            patient_id, status=status, limit=limit
-        )
+        encounters = await client.get_patient_encounters(patient_id, status=status, limit=limit)
 
         # Convert to dicts (Pydantic v2 compatible)
         results = []
         for encounter in encounters:
-            if hasattr(encounter, 'model_dump'):
+            if hasattr(encounter, "model_dump"):
                 results.append(encounter.model_dump(exclude_none=True))
             else:
                 results.append(encounter.dict(exclude_none=True))
@@ -289,7 +281,7 @@ async def get_patient_conditions(
         # Convert to dicts (Pydantic v2 compatible)
         results = []
         for condition in conditions:
-            if hasattr(condition, 'model_dump'):
+            if hasattr(condition, "model_dump"):
                 results.append(condition.model_dump(exclude_none=True))
             else:
                 results.append(condition.dict(exclude_none=True))
@@ -365,15 +357,18 @@ async def get_patient_observations(
 
     try:
         observations = await client.get_patient_observations(
-            patient_id, category=category, code=code,
-            date_range_start=date_range_start, date_range_end=date_range_end,
+            patient_id,
+            category=category,
+            code=code,
+            date_range_start=date_range_start,
+            date_range_end=date_range_end,
             limit=limit,
         )
 
         # Convert to dicts (Pydantic v2 compatible)
         results = []
         for observation in observations:
-            if hasattr(observation, 'model_dump'):
+            if hasattr(observation, "model_dump"):
                 results.append(observation.model_dump(exclude_none=True))
             else:
                 results.append(observation.dict(exclude_none=True))
@@ -436,14 +431,12 @@ async def get_patient_medications(
     )
 
     try:
-        medications = await client.get_patient_medications(
-            patient_id, status=status, limit=limit
-        )
+        medications = await client.get_patient_medications(patient_id, status=status, limit=limit)
 
         # Convert to dicts (Pydantic v2 compatible)
         results = []
         for medication in medications:
-            if hasattr(medication, 'model_dump'):
+            if hasattr(medication, "model_dump"):
                 results.append(medication.model_dump(exclude_none=True))
             else:
                 results.append(medication.dict(exclude_none=True))
@@ -515,7 +508,7 @@ async def get_patient_everything(
         patient = await client.get_patient(patient_id)
 
         # Convert patient to dict (Pydantic v2 compatible)
-        if hasattr(patient, 'model_dump'):
+        if hasattr(patient, "model_dump"):
             patient_dict = patient.model_dump(exclude_none=True)
         else:
             patient_dict = patient.dict(exclude_none=True)
@@ -526,28 +519,36 @@ async def get_patient_everything(
         if include_encounters:
             encounters = await client.get_patient_encounters(patient_id, limit=20)
             result["encounters"] = [
-                enc.model_dump(exclude_none=True) if hasattr(enc, 'model_dump') else enc.dict(exclude_none=True)
+                enc.model_dump(exclude_none=True)
+                if hasattr(enc, "model_dump")
+                else enc.dict(exclude_none=True)
                 for enc in encounters
             ]
 
         if include_conditions:
             conditions = await client.get_patient_conditions(patient_id, limit=50)
             result["conditions"] = [
-                cond.model_dump(exclude_none=True) if hasattr(cond, 'model_dump') else cond.dict(exclude_none=True)
+                cond.model_dump(exclude_none=True)
+                if hasattr(cond, "model_dump")
+                else cond.dict(exclude_none=True)
                 for cond in conditions
             ]
 
         if include_observations:
             observations = await client.get_patient_observations(patient_id, limit=50)
             result["observations"] = [
-                obs.model_dump(exclude_none=True) if hasattr(obs, 'model_dump') else obs.dict(exclude_none=True)
+                obs.model_dump(exclude_none=True)
+                if hasattr(obs, "model_dump")
+                else obs.dict(exclude_none=True)
                 for obs in observations
             ]
 
         if include_medications:
             medications = await client.get_patient_medications(patient_id, limit=50)
             result["medications"] = [
-                med.model_dump(exclude_none=True) if hasattr(med, 'model_dump') else med.dict(exclude_none=True)
+                med.model_dump(exclude_none=True)
+                if hasattr(med, "model_dump")
+                else med.dict(exclude_none=True)
                 for med in medications
             ]
 

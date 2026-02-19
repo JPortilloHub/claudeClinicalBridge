@@ -121,7 +121,7 @@ async def search_patients(
         # Convert to dict for MCP response (use model_dump for Pydantic v2)
         results = []
         for patient in patients:
-            if hasattr(patient, 'model_dump'):
+            if hasattr(patient, "model_dump"):
                 results.append(patient.model_dump(exclude_none=True))
             else:
                 results.append(patient.dict(exclude_none=True))
@@ -177,7 +177,7 @@ async def get_patient(patient_id: str) -> dict[str, Any]:
         patient = await client.get_patient(patient_id)
 
         # Use model_dump for Pydantic v2
-        if hasattr(patient, 'model_dump'):
+        if hasattr(patient, "model_dump"):
             result = patient.model_dump(exclude_none=True)
         else:
             result = patient.dict(exclude_none=True)
@@ -253,7 +253,7 @@ async def get_patient_encounters(
         # Use model_dump for Pydantic v2
         results = []
         for enc in encounters:
-            if hasattr(enc, 'model_dump'):
+            if hasattr(enc, "model_dump"):
                 results.append(enc.model_dump(exclude_none=True))
             else:
                 results.append(enc.dict(exclude_none=True))
@@ -342,7 +342,7 @@ async def get_patient_conditions(
         # Use model_dump for Pydantic v2
         results = []
         for cond in conditions:
-            if hasattr(cond, 'model_dump'):
+            if hasattr(cond, "model_dump"):
                 results.append(cond.model_dump(exclude_none=True))
             else:
                 results.append(cond.dict(exclude_none=True))
@@ -435,7 +435,7 @@ async def get_patient_observations(
         # Use model_dump for Pydantic v2
         results = []
         for obs in observations:
-            if hasattr(obs, 'model_dump'):
+            if hasattr(obs, "model_dump"):
                 results.append(obs.model_dump(exclude_none=True))
             else:
                 results.append(obs.dict(exclude_none=True))
@@ -522,7 +522,7 @@ async def get_patient_medications(
         # Use model_dump for Pydantic v2
         results = []
         for med in medications:
-            if hasattr(med, 'model_dump'):
+            if hasattr(med, "model_dump"):
                 results.append(med.model_dump(exclude_none=True))
             else:
                 results.append(med.dict(exclude_none=True))
@@ -646,9 +646,7 @@ async def patient_resource(patient_id: str) -> str:
 
         if patient_data.get("identifier"):
             mrns = [
-                ident.get("value")
-                for ident in patient_data["identifier"]
-                if ident.get("value")
+                ident.get("value") for ident in patient_data["identifier"] if ident.get("value")
             ]
             if mrns:
                 lines.append(f"MRN: {', '.join(mrns[:3])}")

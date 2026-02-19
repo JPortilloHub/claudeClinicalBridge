@@ -5,7 +5,6 @@ Tests Oracle Health FHIR client authentication, FHIR operations, and MCP server 
 using mocked HTTP responses.
 """
 
-import json
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -21,10 +20,6 @@ from src.python.mcp_servers.oracle_fhir.client import (
 )
 from src.python.mcp_servers.oracle_fhir.server import (
     get_patient,
-    get_patient_conditions,
-    get_patient_encounters,
-    get_patient_medications,
-    get_patient_observations,
     search_patients,
 )
 
@@ -44,9 +39,7 @@ def sample_patient_data():
     return {
         "resourceType": "Patient",
         "id": "oracle.test456",
-        "identifier": [
-            {"system": "urn:oid:2.16.840.1.113883", "value": "MRN789012"}
-        ],
+        "identifier": [{"system": "urn:oid:2.16.840.1.113883", "value": "MRN789012"}],
         "name": [
             {
                 "use": "official",
@@ -126,9 +119,7 @@ def sample_condition_data():
             "text": "Active",
         },
         "code": {
-            "coding": [
-                {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I10"}
-            ],
+            "coding": [{"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I10"}],
             "text": "Essential (primary) hypertension",
         },
         "subject": {"reference": "Patient/oracle.test456"},
@@ -174,8 +165,8 @@ class TestOracleHealthFHIRClient:
     async def test_jwt_generation(self, mock_jwt_encode, mock_oracle_settings, tmp_path):
         """Test JWT assertion generation."""
         # Create a real RSA private key for testing
-        from cryptography.hazmat.primitives.asymmetric import rsa
         from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
 
         private_key = rsa.generate_private_key(
             public_exponent=65537,
@@ -184,7 +175,7 @@ class TestOracleHealthFHIRClient:
         pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         key_file = tmp_path / "test_oracle_key.pem"
@@ -219,8 +210,8 @@ class TestOracleHealthFHIRClient:
     async def test_authentication_success(self, mock_oracle_settings, tmp_path):
         """Test successful Oracle Health authentication."""
         # Create a real RSA private key for testing
-        from cryptography.hazmat.primitives.asymmetric import rsa
         from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
 
         private_key = rsa.generate_private_key(
             public_exponent=65537,
@@ -229,7 +220,7 @@ class TestOracleHealthFHIRClient:
         pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         key_file = tmp_path / "test_oracle_key.pem"
@@ -265,8 +256,8 @@ class TestOracleHealthFHIRClient:
     async def test_authentication_failure(self, mock_oracle_settings, tmp_path):
         """Test Oracle Health authentication failure."""
         # Create a real RSA private key for testing
-        from cryptography.hazmat.primitives.asymmetric import rsa
         from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
 
         private_key = rsa.generate_private_key(
             public_exponent=65537,
@@ -275,7 +266,7 @@ class TestOracleHealthFHIRClient:
         pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         key_file = tmp_path / "test_oracle_key.pem"
@@ -401,6 +392,7 @@ class TestOracleHealthMCPServer:
         assert result["name"][0]["family"] == "Johnson"
         # birthDate is returned as date object by FHIR library
         from datetime import date
+
         assert result["birthDate"] == date(1985, 3, 22) or str(result["birthDate"]) == "1985-03-22"
 
     @pytest.mark.asyncio

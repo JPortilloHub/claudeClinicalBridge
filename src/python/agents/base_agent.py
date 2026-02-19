@@ -168,9 +168,7 @@ class BaseAgent:
         user_content = prompt
 
         if context:
-            context_str = "\n".join(
-                f"**{key}**: {value}" for key, value in context.items()
-            )
+            context_str = "\n".join(f"**{key}**: {value}" for key, value in context.items())
             user_content = f"## Context\n{context_str}\n\n## Task\n{prompt}"
 
         return [{"role": "user", "content": user_content}]

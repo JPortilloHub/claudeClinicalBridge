@@ -32,7 +32,9 @@ logger = get_logger(__name__)
 PHASE_ORDER = ["documentation", "coding", "compliance", "prior_auth", "quality_assurance"]
 
 
-def get_next_phase(current_phase: str, skip_prior_auth: bool, payer: str | None, procedure: str | None) -> str | None:
+def get_next_phase(
+    current_phase: str, skip_prior_auth: bool, payer: str | None, procedure: str | None
+) -> str | None:
     """Determine the next phase after the current one."""
     try:
         idx = PHASE_ORDER.index(current_phase)
@@ -131,29 +133,45 @@ class ClinicalPipelineCoordinator:
             elif phase_name == "coding":
                 doc_content = phase_contents.get("documentation", "")
                 if not doc_content:
-                    return {"error": "Documentation phase must be completed first", "agent": "medical_coding"}
+                    return {
+                        "error": "Documentation phase must be completed first",
+                        "agent": "medical_coding",
+                    }
                 result = self.coding_agent.suggest_codes(doc_content, ctx)
 
             elif phase_name == "compliance":
                 doc_content = phase_contents.get("documentation", "")
                 coding_content = phase_contents.get("coding", "")
                 if not doc_content or not coding_content:
-                    return {"error": "Documentation and Coding phases must be completed first", "agent": "compliance"}
+                    return {
+                        "error": "Documentation and Coding phases must be completed first",
+                        "agent": "compliance",
+                    }
                 result = self.compliance_agent.validate(doc_content, coding_content, ctx)
 
             elif phase_name == "prior_auth":
                 doc_content = phase_contents.get("documentation", "")
                 if not doc_content or not payer or not procedure:
-                    return {"error": "Documentation, payer, and procedure are required", "agent": "prior_authorization"}
-                result = self.prior_auth_agent.assess_authorization(procedure, payer, doc_content, ctx)
+                    return {
+                        "error": "Documentation, payer, and procedure are required",
+                        "agent": "prior_authorization",
+                    }
+                result = self.prior_auth_agent.assess_authorization(
+                    procedure, payer, doc_content, ctx
+                )
 
             elif phase_name == "quality_assurance":
                 doc_content = phase_contents.get("documentation", "")
                 coding_content = phase_contents.get("coding", "")
                 compliance_content = phase_contents.get("compliance", "")
                 if not doc_content or not coding_content:
-                    return {"error": "Prior phases must be completed first", "agent": "quality_assurance"}
-                result = self.qa_agent.review(raw_note, doc_content, coding_content, compliance_content, ctx)
+                    return {
+                        "error": "Prior phases must be completed first",
+                        "agent": "quality_assurance",
+                    }
+                result = self.qa_agent.review(
+                    raw_note, doc_content, coding_content, compliance_content, ctx
+                )
 
             else:
                 return {"error": f"Unknown phase: {phase_name}", "agent": "coordinator"}

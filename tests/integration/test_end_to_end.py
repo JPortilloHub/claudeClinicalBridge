@@ -9,13 +9,12 @@ Run with:
     pytest tests/integration/test_end_to_end.py -o "addopts=" -v
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from src.python.orchestration.coordinator import ClinicalPipelineCoordinator
 from src.python.orchestration.state import PhaseStatus, WorkflowStatus
-
 
 SAMPLE_NOTE = """
 65 year old male presents with chest pain radiating to left arm.
@@ -107,10 +106,15 @@ class TestEndToEndPipeline:
             skip_prior_auth=True,
         )
 
-        assert "SOAP" in state.documentation.content or "Chief Complaint" in state.documentation.content
+        assert (
+            "SOAP" in state.documentation.content
+            or "Chief Complaint" in state.documentation.content
+        )
         assert "ICD-10" in state.coding.content or "I20" in state.coding.content
         assert "Compliance" in state.compliance.content or "PASS" in state.compliance.content
-        assert "QA" in state.quality_assurance.content or "APPROVED" in state.quality_assurance.content
+        assert (
+            "QA" in state.quality_assurance.content or "APPROVED" in state.quality_assurance.content
+        )
 
     def test_pipeline_tracks_tokens(self, mock_client):
         """Test that token usage is tracked across phases."""
@@ -279,7 +283,7 @@ class TestEndToEndEvaluation:
         from src.python.evaluation.hallucination_audit import audit_hallucinations
 
         coordinator = ClinicalPipelineCoordinator(client=mock_client)
-        state = coordinator.process_note(
+        coordinator.process_note(
             note=SAMPLE_NOTE,
             skip_prior_auth=True,
         )
@@ -312,11 +316,13 @@ class TestEndToEndEvaluation:
         )
 
         report = LatencyReport(target_seconds=30.0)
-        report.add(TimingRecord(
-            name="full_pipeline",
-            started_at=0,
-            completed_at=state.total_duration_seconds,
-        ))
+        report.add(
+            TimingRecord(
+                name="full_pipeline",
+                started_at=0,
+                completed_at=state.total_duration_seconds,
+            )
+        )
 
         assert report.total_records == 1
         assert report.meets_target is True

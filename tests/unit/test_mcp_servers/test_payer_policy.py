@@ -13,10 +13,8 @@ from src.python.mcp_servers.payer_policy.policy_store import PayerPolicy, Policy
 from src.python.mcp_servers.payer_policy.server import (
     check_auth_requirements,
     get_documentation_requirements,
-    get_policy_store,
     validate_medical_necessity,
 )
-
 
 # ============================================================================
 # Fixtures
@@ -127,7 +125,7 @@ def policy_store(temp_db, sample_policies_json):
 
 def test_policy_store_initialization(temp_db):
     """Test PolicyStore initializes database correctly."""
-    store = PolicyStore(db_path=temp_db)
+    PolicyStore(db_path=temp_db)
 
     # Check database exists
     assert Path(temp_db).exists()
@@ -135,9 +133,7 @@ def test_policy_store_initialization(temp_db):
     # Check tables exist
     conn = sqlite3.connect(temp_db)
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='policies'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='policies'")
     assert cursor.fetchone() is not None
     conn.close()
 
@@ -493,7 +489,5 @@ async def test_end_to_end_workflow(policy_store, monkeypatch):
         "history": ["conservative treatment failed"],
         "findings": ["MRI indicated"],
     }
-    validation_result = await validate_medical_necessity(
-        "UnitedHealthcare", "70553", clinical_data
-    )
+    validation_result = await validate_medical_necessity("UnitedHealthcare", "70553", clinical_data)
     assert validation_result["validation_status"] in ["approved", "needs_review"]

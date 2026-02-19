@@ -4,23 +4,19 @@ Unit tests for Medical Knowledge Base MCP Server.
 Tests embedding generation, semantic search, and MCP server tools.
 """
 
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
 np = pytest.importorskip("numpy", reason="numpy not installed")
 pytest.importorskip("qdrant_client", reason="qdrant-client not installed")
 
-from qdrant_client.http import models
 
-from src.python.mcp_servers.medical_knowledge.embeddings import (
+from src.python.mcp_servers.medical_knowledge.embeddings import (  # noqa: E402
     MedicalCodeEmbedder,
-    load_and_embed_codes,
 )
-from src.python.mcp_servers.medical_knowledge.search import MedicalCodeSearch
-from src.python.mcp_servers.medical_knowledge.server import (
+from src.python.mcp_servers.medical_knowledge.search import MedicalCodeSearch  # noqa: E402
+from src.python.mcp_servers.medical_knowledge.server import (  # noqa: E402
     get_code_details,
     get_code_hierarchy,
     search_cpt,
@@ -285,9 +281,7 @@ class TestMCPServerTools:
         mock_get_embedder.return_value = mock_embedder
 
         mock_search = Mock()
-        mock_search.search_by_text.return_value = [
-            {**sample_icd10_code, "similarity_score": 0.92}
-        ]
+        mock_search.search_by_text.return_value = [{**sample_icd10_code, "similarity_score": 0.92}]
         mock_get_search_engine.return_value = mock_search
 
         results = await search_icd10("diabetes", limit=5)
@@ -306,9 +300,7 @@ class TestMCPServerTools:
         mock_get_embedder.return_value = mock_embedder
 
         mock_search = Mock()
-        mock_search.search_by_text.return_value = [
-            {**sample_cpt_code, "similarity_score": 0.89}
-        ]
+        mock_search.search_by_text.return_value = [{**sample_cpt_code, "similarity_score": 0.89}]
         mock_get_search_engine.return_value = mock_search
 
         results = await search_cpt("office visit", limit=5)
@@ -319,9 +311,7 @@ class TestMCPServerTools:
 
     @pytest.mark.asyncio
     @patch("src.python.mcp_servers.medical_knowledge.server.get_search_engine")
-    async def test_get_code_details_tool(
-        self, mock_get_search_engine, sample_icd10_code
-    ):
+    async def test_get_code_details_tool(self, mock_get_search_engine, sample_icd10_code):
         """Test get_code_details MCP tool."""
         mock_search = Mock()
         mock_search.get_code_by_id.return_value = sample_icd10_code
@@ -335,9 +325,7 @@ class TestMCPServerTools:
 
     @pytest.mark.asyncio
     @patch("src.python.mcp_servers.medical_knowledge.server.get_search_engine")
-    async def test_get_code_hierarchy_tool(
-        self, mock_get_search_engine, sample_icd10_code
-    ):
+    async def test_get_code_hierarchy_tool(self, mock_get_search_engine, sample_icd10_code):
         """Test get_code_hierarchy MCP tool."""
         mock_search = Mock()
         mock_search.get_code_hierarchy.return_value = {
@@ -366,11 +354,11 @@ class TestMCPServerTools:
         with patch("src.python.mcp_servers.medical_knowledge.server.get_embedder"):
             with patch("src.python.mcp_servers.medical_knowledge.server.get_search_engine"):
                 # Limit too low
-                results = await search_icd10("test", limit=-5)
+                await search_icd10("test", limit=-5)
                 # Should not raise error, should clamp to 1
 
                 # Limit too high (should be capped at 50)
-                results = await search_icd10("test", limit=100)
+                await search_icd10("test", limit=100)
                 # Should not raise error, should clamp to 50
 
     @pytest.mark.asyncio
@@ -407,9 +395,7 @@ class TestSemanticSearchAccuracy:
         embedder = MedicalCodeEmbedder()
         search_engine = MedicalCodeSearch()
 
-        results = search_engine.search_by_text(
-            "icd10", "high blood sugar", embedder, limit=5
-        )
+        results = search_engine.search_by_text("icd10", "high blood sugar", embedder, limit=5)
 
         assert len(results) > 0
         assert results[0]["code"] == "E11.9"

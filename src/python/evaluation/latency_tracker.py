@@ -8,9 +8,10 @@ across pipeline phases and end-to-end workflows.
 from __future__ import annotations
 
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Generator
+from typing import Any
 
 from src.python.utils.logging import get_logger
 
@@ -114,7 +115,9 @@ class LatencyReport:
 
 
 @contextmanager
-def track_latency(name: str, report: LatencyReport | None = None) -> Generator[TimingRecord, None, None]:
+def track_latency(
+    name: str, report: LatencyReport | None = None
+) -> Generator[TimingRecord, None, None]:
     """
     Context manager for tracking execution latency.
 

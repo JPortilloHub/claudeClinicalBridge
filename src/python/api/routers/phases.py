@@ -245,7 +245,9 @@ def edit_phase_content(
     return phase_result
 
 
-@router.post("/{workflow_id}/phases/{phase_name}/approve", response_model=schemas.PhaseApproveResponse)
+@router.post(
+    "/{workflow_id}/phases/{phase_name}/approve", response_model=schemas.PhaseApproveResponse
+)
 def approve_phase(
     workflow_id: UUID,
     phase_name: str,
@@ -298,4 +300,3 @@ def approve_phase(
         message=f"Phase '{phase_name}' approved",
         next_phase=next_phase,
     )
-

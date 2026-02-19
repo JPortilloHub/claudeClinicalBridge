@@ -5,7 +5,6 @@ Tests Epic FHIR client authentication, FHIR operations, and MCP server tools
 using mocked HTTP responses.
 """
 
-import json
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -21,10 +20,6 @@ from src.python.mcp_servers.epic_fhir.client import (
 )
 from src.python.mcp_servers.epic_fhir.server import (
     get_patient,
-    get_patient_conditions,
-    get_patient_encounters,
-    get_patient_medications,
-    get_patient_observations,
     search_patients,
 )
 
@@ -44,9 +39,7 @@ def sample_patient_data():
     return {
         "resourceType": "Patient",
         "id": "e.test123",
-        "identifier": [
-            {"system": "urn:oid:1.2.840.114350", "value": "MRN123456"}
-        ],
+        "identifier": [{"system": "urn:oid:1.2.840.114350", "value": "MRN123456"}],
         "name": [
             {
                 "use": "official",
@@ -126,9 +119,7 @@ def sample_condition_data():
             "text": "Active",
         },
         "code": {
-            "coding": [
-                {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "E11.9"}
-            ],
+            "coding": [{"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "E11.9"}],
             "text": "Type 2 diabetes mellitus without complications",
         },
         "subject": {"reference": "Patient/e.test123"},
@@ -383,6 +374,7 @@ class TestEpicMCPServer:
         assert result["name"][0]["family"] == "Smith"
         # birthDate is returned as date object by FHIR library
         from datetime import date
+
         assert result["birthDate"] == date(1980, 1, 15) or str(result["birthDate"]) == "1980-01-15"
 
     @pytest.mark.asyncio

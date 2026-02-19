@@ -104,14 +104,10 @@ class WorkflowState:
         )
     )
     coding: PhaseResult = field(
-        default_factory=lambda: PhaseResult(
-            phase_name="coding", agent_name="medical_coding"
-        )
+        default_factory=lambda: PhaseResult(phase_name="coding", agent_name="medical_coding")
     )
     compliance: PhaseResult = field(
-        default_factory=lambda: PhaseResult(
-            phase_name="compliance", agent_name="compliance"
-        )
+        default_factory=lambda: PhaseResult(phase_name="compliance", agent_name="compliance")
     )
     prior_auth: PhaseResult = field(
         default_factory=lambda: PhaseResult(

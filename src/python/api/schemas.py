@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-
 # --- Auth ---
+
 
 class LoginRequest(BaseModel):
     username: str
@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
 
 
 # --- Workflows ---
+
 
 class WorkflowCreate(BaseModel):
     raw_note: str
@@ -93,6 +94,7 @@ class WorkflowDetail(BaseModel):
 
 
 # --- Phase operations ---
+
 
 class PhaseContentEdit(BaseModel):
     edited_content: str

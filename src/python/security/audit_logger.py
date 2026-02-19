@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -29,7 +29,7 @@ class AuditAction(Enum):
     UPDATE = "update"
     DELETE = "delete"
     EXPORT = "export"
-    PROCESS = "process"       # Pipeline processing
+    PROCESS = "process"  # Pipeline processing
     CODE_SUGGEST = "code_suggest"
     COMPLIANCE_CHECK = "compliance_check"
     PRIOR_AUTH = "prior_auth"
@@ -54,7 +54,7 @@ class AuditEntry:
     agent_name: str = ""
     workflow_id: str = ""
     patient_id_hash: str = ""  # Never store raw patient ID
-    resource_type: str = ""    # e.g., "clinical_note", "coding", "compliance"
+    resource_type: str = ""  # e.g., "clinical_note", "coding", "compliance"
     detail: str = ""
 
     def to_dict(self) -> dict[str, Any]:

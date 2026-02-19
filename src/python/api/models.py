@@ -4,26 +4,28 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-
-def _utcnow():
-    """Return current UTC time (non-deprecated replacement for _utcnow)."""
-    return datetime.now(timezone.utc)
-
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum as SQLEnum,
     Float,
     ForeignKey,
     Integer,
     String,
     Text,
 )
+from sqlalchemy import (
+    Enum as SQLEnum,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.python.utils.database import Base
+
+
+def _utcnow():
+    """Return current UTC time (non-deprecated replacement for _utcnow)."""
+    return datetime.now(timezone.utc)
 
 
 class WorkflowStatus(str, enum.Enum):
@@ -67,9 +69,7 @@ class Workflow(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime, default=_utcnow, nullable=False, index=True)
-    updated_at = Column(
-        DateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
     created_by_user_id = Column(Integer, ForeignKey("users.id"))
 
     status = Column(
@@ -114,9 +114,7 @@ class PhaseResult(Base):
     )
     phase_name = Column(String(20), nullable=False)
 
-    status = Column(
-        SQLEnum(PhaseStatus), nullable=False, default=PhaseStatus.PENDING
-    )
+    status = Column(SQLEnum(PhaseStatus), nullable=False, default=PhaseStatus.PENDING)
     content = Column(Text)  # Original agent output (JSON string)
     edited_content = Column(Text)  # Human-edited version (JSON string)
     error = Column(Text)

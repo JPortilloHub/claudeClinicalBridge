@@ -21,7 +21,6 @@ from src.python.orchestration.state import (
 )
 from src.python.orchestration.workflow import execute_phase, run_with_retry
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================
@@ -299,7 +298,7 @@ def test_execute_phase_with_retry(mock_sleep):
         ]
     )
 
-    result = execute_phase(phase, fn, "input", use_retry=True, max_retries=2, base_delay=0.1)
+    execute_phase(phase, fn, "input", use_retry=True, max_retries=2, base_delay=0.1)
 
     assert phase.status == PhaseStatus.COMPLETED
     assert phase.content == "retry success"

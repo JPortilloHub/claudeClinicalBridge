@@ -55,9 +55,7 @@ SAMPLE_MEDICATION_REQUEST = {
     "resourceType": "MedicationRequest",
     "id": "med-oracle-001",
     "status": "active",
-    "medicationCodeableConcept": {
-        "coding": [{"display": "Metformin 1000mg"}]
-    },
+    "medicationCodeableConcept": {"coding": [{"display": "Metformin 1000mg"}]},
     "subject": {"reference": "Patient/oracle-C2001"},
 }
 
@@ -83,8 +81,13 @@ class TestOracleHealthClientIntegration:
         mock_response.json.return_value = _bundle_response(SAMPLE_PATIENT)
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.python.mcp_servers.oracle_fhir.client.OracleHealthFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
+        with patch(
+            "src.python.mcp_servers.oracle_fhir.client.OracleHealthFHIRClient.authenticate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response
+            ):
                 from src.python.mcp_servers.oracle_fhir.client import OracleHealthFHIRClient
 
                 client = OracleHealthFHIRClient(
@@ -106,8 +109,13 @@ class TestOracleHealthClientIntegration:
         mock_response.json.return_value = _bundle_response(SAMPLE_CONDITION)
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.python.mcp_servers.oracle_fhir.client.OracleHealthFHIRClient.authenticate", new_callable=AsyncMock):
-            with patch("httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response):
+        with patch(
+            "src.python.mcp_servers.oracle_fhir.client.OracleHealthFHIRClient.authenticate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "httpx.AsyncClient.request", new_callable=AsyncMock, return_value=mock_response
+            ):
                 from src.python.mcp_servers.oracle_fhir.client import OracleHealthFHIRClient
 
                 client = OracleHealthFHIRClient(
@@ -181,7 +189,7 @@ class TestOracleHealthErrorHandling:
                 client_id="bad-client",
             )
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 await client.authenticate()
 
     def test_empty_search_results(self):

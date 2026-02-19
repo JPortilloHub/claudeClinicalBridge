@@ -5,8 +5,6 @@ Implements Epic-specific authentication and FHIR R4 operations
 using the SMART on FHIR Backend Services authorization flow (JWT).
 """
 
-import base64
-import json
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -83,7 +81,7 @@ class EpicFHIRClient(BaseFHIRClient):
         if not key_path.exists():
             raise FileNotFoundError(f"Private key not found: {key_path}")
 
-        with open(key_path, "r") as f:
+        with open(key_path) as f:
             private_key = f.read()
 
         logger.debug("epic_private_key_loaded", path=self.private_key_path)
@@ -170,12 +168,14 @@ class EpicFHIRClient(BaseFHIRClient):
             logger.error(
                 "epic_authentication_failed",
                 error=str(e),
-                status_code=getattr(e.response, "status_code", None) if hasattr(e, "response") else None,
+                status_code=getattr(e.response, "status_code", None)
+                if hasattr(e, "response")
+                else None,
             )
-            raise AuthenticationError(f"Epic authentication failed: {e}")
+            raise AuthenticationError(f"Epic authentication failed: {e}") from e
         except Exception as e:
             logger.error("epic_authentication_error", error=str(e))
-            raise AuthenticationError(f"Authentication error: {e}")
+            raise AuthenticationError(f"Authentication error: {e}") from e
 
     async def get_patient_everything(
         self,

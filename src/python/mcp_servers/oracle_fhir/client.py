@@ -187,9 +187,7 @@ class OracleHealthFHIRClient(BaseFHIRClient):
             ) from e
         except Exception as e:
             logger.error("oracle_health_authentication_error", error=str(e))
-            raise AuthenticationError(
-                f"Oracle Health authentication error: {str(e)}"
-            ) from e
+            raise AuthenticationError(f"Oracle Health authentication error: {str(e)}") from e
 
     async def _ensure_authenticated(self) -> None:
         """

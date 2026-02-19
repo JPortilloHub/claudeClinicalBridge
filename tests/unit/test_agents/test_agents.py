@@ -15,7 +15,6 @@ from src.python.agents.medical_coding import MedicalCodingAgent
 from src.python.agents.prior_authorization import PriorAuthorizationAgent
 from src.python.agents.quality_assurance import QualityAssuranceAgent
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================
@@ -349,6 +348,4 @@ def test_all_agents_load_skills(mock_anthropic_client):
 
     for agent in agents:
         # System prompt should contain content from loaded skills
-        assert len(agent._system_prompt) > 100, (
-            f"{agent.agent_name} has empty system prompt"
-        )
+        assert len(agent._system_prompt) > 100, f"{agent.agent_name} has empty system prompt"

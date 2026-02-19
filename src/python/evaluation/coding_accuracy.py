@@ -129,8 +129,8 @@ def evaluate_codes(
     Returns:
         CodingAccuracyResult with precision/recall/F1
     """
-    expected_set = set(c.strip().upper() for c in expected)
-    predicted_set = set(c.strip().upper() for c in predicted)
+    expected_set = {c.strip().upper() for c in expected}
+    predicted_set = {c.strip().upper() for c in predicted}
 
     tp = sorted(expected_set & predicted_set)
     fp = sorted(predicted_set - expected_set)

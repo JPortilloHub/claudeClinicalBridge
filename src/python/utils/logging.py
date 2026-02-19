@@ -20,9 +20,7 @@ from structlog.typing import EventDict, WrappedLogger
 from .config import settings
 
 
-def add_app_context(
-    logger: WrappedLogger, method_name: str, event_dict: EventDict
-) -> EventDict:
+def add_app_context(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     """
     Add application context to all log events.
 

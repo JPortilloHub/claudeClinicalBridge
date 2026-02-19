@@ -165,12 +165,41 @@ def evaluate_compliance(
 
 
 # Stop words to exclude from keyword matching
-_STOP_WORDS = frozenset({
-    "a", "an", "the", "is", "are", "was", "were", "be", "been",
-    "in", "on", "at", "to", "for", "of", "with", "by", "from",
-    "and", "or", "not", "no", "but", "if", "has", "had", "have",
-    "this", "that", "it", "its",
-})
+_STOP_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "from",
+        "and",
+        "or",
+        "not",
+        "no",
+        "but",
+        "if",
+        "has",
+        "had",
+        "have",
+        "this",
+        "that",
+        "it",
+        "its",
+    }
+)
 
 
 def _extract_keywords(text: str) -> list[str]:

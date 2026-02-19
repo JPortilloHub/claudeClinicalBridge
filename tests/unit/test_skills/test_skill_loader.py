@@ -12,7 +12,6 @@ from src.python.skills.skill_loader import (
     load_skills,
 )
 
-
 # ============================================================================
 # load_skill Tests
 # ============================================================================
@@ -168,7 +167,6 @@ def test_available_skills_count():
 
 def test_available_skills_files_exist():
     """Test that all registered skill files actually exist."""
-    from pathlib import Path
 
     from src.python.skills.skill_loader import SKILLS_DIR
 

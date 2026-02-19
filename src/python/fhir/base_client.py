@@ -6,7 +6,7 @@ including OAuth authentication, resource queries, and error handling.
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -17,7 +17,6 @@ from fhir.resources.medicationrequest import MedicationRequest
 from fhir.resources.observation import Observation
 from fhir.resources.patient import Patient
 
-from src.python.utils.config import settings
 from src.python.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -200,9 +199,16 @@ class BaseFHIRClient(ABC):
         patients = []
         if bundle.entry:
             for entry in bundle.entry:
-                if entry.resource and getattr(entry.resource, '__resource_type__', None) == "Patient":
+                if (
+                    entry.resource
+                    and getattr(entry.resource, "__resource_type__", None) == "Patient"
+                ):
                     # Use model_dump() for Pydantic v2
-                    resource_dict = entry.resource.model_dump() if hasattr(entry.resource, 'model_dump') else entry.resource.dict()
+                    resource_dict = (
+                        entry.resource.model_dump()
+                        if hasattr(entry.resource, "model_dump")
+                        else entry.resource.dict()
+                    )
                     patients.append(Patient(**resource_dict))
 
         logger.info("Patient search complete", num_results=len(patients))
@@ -242,8 +248,15 @@ class BaseFHIRClient(ABC):
         encounters = []
         if bundle.entry:
             for entry in bundle.entry:
-                if entry.resource and getattr(entry.resource, '__resource_type__', None) == "Encounter":
-                    resource_dict = entry.resource.model_dump() if hasattr(entry.resource, 'model_dump') else entry.resource.dict()
+                if (
+                    entry.resource
+                    and getattr(entry.resource, "__resource_type__", None) == "Encounter"
+                ):
+                    resource_dict = (
+                        entry.resource.model_dump()
+                        if hasattr(entry.resource, "model_dump")
+                        else entry.resource.dict()
+                    )
                     encounters.append(Encounter(**resource_dict))
 
         logger.info(
@@ -292,8 +305,15 @@ class BaseFHIRClient(ABC):
         conditions = []
         if bundle.entry:
             for entry in bundle.entry:
-                if entry.resource and getattr(entry.resource, '__resource_type__', None) == "Condition":
-                    resource_dict = entry.resource.model_dump() if hasattr(entry.resource, 'model_dump') else entry.resource.dict()
+                if (
+                    entry.resource
+                    and getattr(entry.resource, "__resource_type__", None) == "Condition"
+                ):
+                    resource_dict = (
+                        entry.resource.model_dump()
+                        if hasattr(entry.resource, "model_dump")
+                        else entry.resource.dict()
+                    )
                     conditions.append(Condition(**resource_dict))
 
         logger.info(
@@ -353,8 +373,15 @@ class BaseFHIRClient(ABC):
         observations = []
         if bundle.entry:
             for entry in bundle.entry:
-                if entry.resource and getattr(entry.resource, '__resource_type__', None) == "Observation":
-                    resource_dict = entry.resource.model_dump() if hasattr(entry.resource, 'model_dump') else entry.resource.dict()
+                if (
+                    entry.resource
+                    and getattr(entry.resource, "__resource_type__", None) == "Observation"
+                ):
+                    resource_dict = (
+                        entry.resource.model_dump()
+                        if hasattr(entry.resource, "model_dump")
+                        else entry.resource.dict()
+                    )
                     observations.append(Observation(**resource_dict))
 
         logger.info(
@@ -399,8 +426,15 @@ class BaseFHIRClient(ABC):
         medication_requests = []
         if bundle.entry:
             for entry in bundle.entry:
-                if entry.resource and getattr(entry.resource, '__resource_type__', None) == "MedicationRequest":
-                    resource_dict = entry.resource.model_dump() if hasattr(entry.resource, 'model_dump') else entry.resource.dict()
+                if (
+                    entry.resource
+                    and getattr(entry.resource, "__resource_type__", None) == "MedicationRequest"
+                ):
+                    resource_dict = (
+                        entry.resource.model_dump()
+                        if hasattr(entry.resource, "model_dump")
+                        else entry.resource.dict()
+                    )
                     medication_requests.append(MedicationRequest(**resource_dict))
 
         logger.info(

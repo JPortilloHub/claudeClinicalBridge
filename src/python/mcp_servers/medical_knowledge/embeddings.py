@@ -167,7 +167,6 @@ class MedicalCodeEmbedder:
             Enhanced code data with embedding and composite text
         """
         # Create composite text for better semantic matching
-        code = code_data.get("code", "")
         description = code_data.get("description", "")
         keywords = code_data.get("keywords", [])
 
@@ -235,9 +234,7 @@ class MedicalCodeEmbedder:
         return enriched_codes
 
 
-def load_and_embed_codes(
-    json_path: str | Path, code_type: str = "icd10"
-) -> list[dict[str, Any]]:
+def load_and_embed_codes(json_path: str | Path, code_type: str = "icd10") -> list[dict[str, Any]]:
     """
     Load medical codes from JSON file and generate embeddings.
 
@@ -256,7 +253,7 @@ def load_and_embed_codes(
 
     logger.info("Loading medical codes", path=str(json_path), code_type=code_type)
 
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         codes_data = json.load(f)
 
     logger.info("Loaded medical codes from file", num_codes=len(codes_data), code_type=code_type)
@@ -288,14 +285,16 @@ if __name__ == "__main__":
             json_path = settings.data_dir / "cpt" / "sample_cpt_codes.json"
         else:
             print(f"Unknown code type: {code_type}")
-            print("Usage: python -m src.python.mcp_servers.medical_knowledge.embeddings [icd10|cpt]")
+            print(
+                "Usage: python -m src.python.mcp_servers.medical_knowledge.embeddings [icd10|cpt]"
+            )
             sys.exit(1)
 
         enriched_codes = load_and_embed_codes(json_path, code_type)
 
         print(f"Successfully embedded {len(enriched_codes)} {code_type.upper()} codes")
         print(f"Embedding dimension: {len(enriched_codes[0]['embedding'])}")
-        print(f"\nExample code:")
+        print("\nExample code:")
         print(f"  Code: {enriched_codes[0]['code']}")
         print(f"  Description: {enriched_codes[0]['description']}")
         print(f"  Embedding shape: {len(enriched_codes[0]['embedding'])}")
