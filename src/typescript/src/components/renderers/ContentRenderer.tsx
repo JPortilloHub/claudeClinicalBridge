@@ -10,7 +10,7 @@ import QualityView from './QualityView';
 
 interface ContentRendererProps {
   phaseName: string;
-  content: string;
+  content: string | object;
 }
 
 export default function ContentRenderer({ phaseName, content }: ContentRendererProps) {

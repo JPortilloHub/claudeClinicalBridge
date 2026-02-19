@@ -20,7 +20,7 @@ function CodeCard({ item, type }: { item: any; type: 'diagnosis' | 'procedure' }
           <strong>{item.description || 'No description'}</strong>
           <div className="r-code-badges">
             {type === 'diagnosis' && item.sequencing && (
-              <span className={`r-badge ${item.sequencing === 'primary' ? 'r-badge-blue' : 'r-badge-gray'}`}>
+              <span className={`r-badge ${item.sequencing?.toLowerCase() === 'primary' ? 'r-badge-blue' : 'r-badge-gray'}`}>
                 {item.sequencing}
               </span>
             )}
@@ -37,6 +37,15 @@ function CodeCard({ item, type }: { item: any; type: 'diagnosis' | 'procedure' }
       </div>
       {item.rationale && <p className="r-card-detail">{item.rationale}</p>}
       {item.specificity_check && <p className="r-card-note">{item.specificity_check}</p>}
+      {item.supporting_documentation && item.supporting_documentation.length > 0 && (
+        <div className="r-card-supporting">
+          <strong>Supporting Documentation:</strong>
+          <ul className="r-list r-list-compact">
+            {item.supporting_documentation.map((doc: string, i: number) => <li key={i}>{doc}</li>)}
+          </ul>
+        </div>
+      )}
+      {item.excludes_conflicts && <p className="r-card-note"><strong>Excludes:</strong> {item.excludes_conflicts}</p>}
     </div>
   );
 }
@@ -65,7 +74,7 @@ function OverviewTab({ data }: Props) {
                 <span>{dx.description || '\u2014'}</span>
                 <span>
                   {dx.sequencing && (
-                    <span className={`r-badge ${dx.sequencing === 'primary' ? 'r-badge-blue' : 'r-badge-gray'}`}>
+                    <span className={`r-badge ${dx.sequencing?.toLowerCase() === 'primary' ? 'r-badge-blue' : 'r-badge-gray'}`}>
                       {dx.sequencing}
                     </span>
                   )}

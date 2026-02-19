@@ -73,7 +73,7 @@ function OverviewTab({ data }: Props) {
           <h4 className="r-section-title">Issue Summary</h4>
           <div className="r-issue-summary-row">
             {(['critical', 'warning', 'info'] as const).map(severity => {
-              const count = issues.filter((i: any) => i.severity === severity).length;
+              const count = issues.filter((i: any) => i.severity?.toLowerCase() === severity).length;
               if (count === 0) return null;
               return (
                 <div key={severity} className="r-issue-summary-item">
@@ -185,7 +185,7 @@ function IssuesTab({ data }: Props) {
 
   const sortedIssues = [...issues].sort((a: any, b: any) => {
     const order: Record<string, number> = { critical: 0, warning: 1, info: 2 };
-    return (order[a.severity] ?? 3) - (order[b.severity] ?? 3);
+    return (order[a.severity?.toLowerCase()] ?? 3) - (order[b.severity?.toLowerCase()] ?? 3);
   });
 
   if (sortedIssues.length === 0) {

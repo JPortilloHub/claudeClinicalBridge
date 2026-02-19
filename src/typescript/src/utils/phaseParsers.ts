@@ -25,7 +25,8 @@ function extractJson(raw: string): string {
   const s = raw.trim();
   if (s.startsWith('{') || s.startsWith('[')) return s;
 
-  const fenceMatch = s.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
+  // Try fenced code blocks (with or without trailing newline before fence)
+  const fenceMatch = s.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
   if (fenceMatch) return fenceMatch[1].trim();
 
   const firstBrace = s.indexOf('{');
@@ -45,8 +46,18 @@ function extractJson(raw: string): string {
 /**
  * Parse JSON with repair support for truncated LLM outputs.
  * Returns [parsed, wasTruncated] — wasTruncated is true if repair was needed.
+ * Accepts a string or an already-parsed object (from some API code paths).
  */
-function safeParse(raw: string): [unknown, boolean] {
+function safeParse(raw: string | object): [unknown, boolean] {
+  // If content is already a parsed object, return it directly
+  if (typeof raw === 'object' && raw !== null) {
+    return [raw, false];
+  }
+
+  if (typeof raw !== 'string' || raw.trim().length === 0) {
+    return [null, false];
+  }
+
   const extracted = extractJson(raw);
 
   // Try direct parse first
@@ -69,8 +80,9 @@ function safeParse(raw: string): [unknown, boolean] {
 /*  Fallback builder                                                   */
 /* ------------------------------------------------------------------ */
 
-function buildFallback(raw: string, error?: string): PhaseViewModel {
-  const preview = raw.length > 800 ? raw.slice(0, 800) + '...' : raw;
+function buildFallback(raw: string | object, error?: string): PhaseViewModel {
+  const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
+  const preview = rawStr.length > 800 ? rawStr.slice(0, 800) + '...' : rawStr;
   return {
     status: 'unknown',
     summary: error || 'Structured output unavailable',
@@ -91,7 +103,7 @@ function addTruncationWarning(kpis: KPIItem[], wasTruncated: boolean): void {
 /*  Clinical Documentation parser                                      */
 /* ------------------------------------------------------------------ */
 
-export function parseClinicalDocumentation(raw: string): PhaseViewModel {
+export function parseClinicalDocumentation(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
     return buildFallback(raw, 'Unable to parse documentation output');
@@ -155,7 +167,7 @@ export function parseClinicalDocumentation(raw: string): PhaseViewModel {
 /*  Medical Coding parser                                              */
 /* ------------------------------------------------------------------ */
 
-export function parseMedicalCoding(raw: string): PhaseViewModel {
+export function parseMedicalCoding(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
     return buildFallback(raw, 'Unable to parse coding output');
@@ -184,7 +196,7 @@ export function parseMedicalCoding(raw: string): PhaseViewModel {
 
     addTruncationWarning(kpis, wasTruncated);
 
-    const primary = diagnoses.find((d: { sequencing?: string }) => d.sequencing === 'primary');
+    const primary = diagnoses.find((d: { sequencing?: string }) => d.sequencing?.toLowerCase() === 'primary');
     const summary = primary?.description
       ? `Primary: ${primary.description} (${primary.code || ''})`
       : `${diagnoses.length} diagnoses, ${procedures.length} procedures coded`;
@@ -211,7 +223,7 @@ export function parseMedicalCoding(raw: string): PhaseViewModel {
 /*  Compliance Validation parser                                       */
 /* ------------------------------------------------------------------ */
 
-export function parseCompliance(raw: string): PhaseViewModel {
+export function parseCompliance(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
     return buildFallback(raw, 'Unable to parse compliance output');
@@ -241,7 +253,7 @@ export function parseCompliance(raw: string): PhaseViewModel {
     }
 
     const issues = data?.compliance_issues || [];
-    const criticalCount = issues.filter((i: { severity?: string }) => i.severity === 'critical').length;
+    const criticalCount = issues.filter((i: { severity?: string }) => i.severity?.toLowerCase() === 'critical').length;
     kpis.push({
       label: 'Issues',
       value: issues.length,
@@ -277,7 +289,7 @@ export function parseCompliance(raw: string): PhaseViewModel {
 /*  Prior Authorization parser                                         */
 /* ------------------------------------------------------------------ */
 
-export function parsePriorAuth(raw: string): PhaseViewModel {
+export function parsePriorAuth(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
     return buildFallback(raw, 'Unable to parse prior auth output');
@@ -341,7 +353,7 @@ export function parsePriorAuth(raw: string): PhaseViewModel {
 /*  Quality Assurance parser                                           */
 /* ------------------------------------------------------------------ */
 
-export function parseQualityAssurance(raw: string): PhaseViewModel {
+export function parseQualityAssurance(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
     return buildFallback(raw, 'Unable to parse quality assurance output');
@@ -413,7 +425,7 @@ export function parseQualityAssurance(raw: string): PhaseViewModel {
 /*  Master dispatcher                                                  */
 /* ------------------------------------------------------------------ */
 
-export function parsePhaseContent(phaseName: string, raw: string): PhaseViewModel {
+export function parsePhaseContent(phaseName: string, raw: string | object): PhaseViewModel {
   switch (phaseName) {
     case 'documentation':
       return parseClinicalDocumentation(raw);

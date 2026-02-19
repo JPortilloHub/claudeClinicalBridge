@@ -77,6 +77,8 @@ export const CodingSchema = z.object({
     rationale: z.string().optional(),
     specificity_check: z.string().optional(),
     modifiers: z.array(z.string()).optional(),
+    supporting_documentation: z.array(z.string()).optional(),
+    excludes_conflicts: z.string().optional(),
   })).optional(),
   procedures: z.array(z.object({
     code: z.string().optional(),

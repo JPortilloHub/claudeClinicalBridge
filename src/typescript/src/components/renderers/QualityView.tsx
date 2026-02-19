@@ -60,7 +60,14 @@ function OverviewTab({ data }: Props) {
           <h4 className="r-section-title">Quality Dimensions</h4>
           <div className="r-dimensions">
             {Object.entries(dims).map(([key, dim]: [string, any]) => (
-              <ScoreBar key={key} label={key} score={dim?.score ?? 0} />
+              <div key={key}>
+                <ScoreBar label={key} score={dim?.score ?? 0} />
+                {dim?.issues && dim.issues.length > 0 && (
+                  <ul className="r-list r-list-compact r-dimension-issues">
+                    {dim.issues.map((issue: string, i: number) => <li key={i}>{issue}</li>)}
+                  </ul>
+                )}
+              </div>
             ))}
           </div>
         </div>
