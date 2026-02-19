@@ -15,7 +15,7 @@ import hmac
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from src.python.utils.config import settings
 from src.python.utils.logging import get_logger
@@ -85,7 +85,7 @@ class EncryptionManager:
         try:
             from cryptography.fernet import Fernet
 
-            return Fernet.generate_key()
+            return cast(bytes, Fernet.generate_key())
         except ImportError:
             return base64.urlsafe_b64encode(os.urandom(32))
 
@@ -133,7 +133,7 @@ class EncryptionManager:
 
     def decrypt_dict(self, ciphertext: str) -> dict[str, Any]:
         """Decrypt a dictionary from encrypted JSON."""
-        return json.loads(self.decrypt(ciphertext))
+        return cast(dict[str, Any], json.loads(self.decrypt(ciphertext)))
 
     def _hmac_obfuscate(self, data: bytes) -> str:
         """HMAC-based obfuscation fallback (not cryptographically secure encryption)."""

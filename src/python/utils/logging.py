@@ -12,9 +12,11 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import structlog
+from structlog.dev import ConsoleRenderer
+from structlog.processors import JSONRenderer
 from structlog.typing import EventDict, WrappedLogger
 
 from .config import settings
@@ -181,6 +183,7 @@ def setup_logging() -> None:
     )
 
     # Determine renderer based on format setting
+    renderer: Union[JSONRenderer, ConsoleRenderer]
     if settings.log_format == "json":
         renderer = structlog.processors.JSONRenderer()
     else:
@@ -219,7 +222,7 @@ def get_logger(name: str | None = None, **initial_context: Any) -> structlog.std
     Returns:
         Configured structlog logger with bound context
     """
-    logger = structlog.get_logger(name)
+    logger: structlog.stdlib.BoundLogger = structlog.get_logger(name)
     if initial_context:
         logger = logger.bind(**initial_context)
     return logger
