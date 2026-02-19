@@ -130,7 +130,7 @@ def _run_phase_background(workflow_id: UUID, phase_name: str) -> None:
                 phase_result.error = str(e)
                 phase_result.completed_at = datetime.now(timezone.utc)
                 db.commit()
-        except Exception:
+        except Exception:  # nosec B110 - intentional: cleanup must not raise
             pass
     finally:
         db.close()

@@ -212,7 +212,7 @@ def redact_dict(
     Returns:
         New dictionary with PHI redacted from all string values
     """
-    redacted = {}
+    redacted: dict[str, Any] = {}
     for key, value in data.items():
         if isinstance(value, str):
             redacted[key], _ = redact_phi(value, method)
