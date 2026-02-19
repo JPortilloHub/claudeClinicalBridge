@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ruff mypy pydantic pydantic-settings structlog
+          pip install ruff mypy pydantic pydantic-settings structlog bandit[toml]
 
       - name: Ruff lint
         run: ruff check src/ tests/
@@ -36,6 +36,9 @@ jobs:
 
       - name: Mypy type check
         run: mypy src/python/utils/ src/python/security/ src/python/evaluation/ --ignore-missing-imports --explicit-package-bases
+
+      - name: Bandit security scan
+        run: bandit -r src/python/ -c pyproject.toml
 
   test:
     name: Tests (Python ${{ matrix.python-version }})

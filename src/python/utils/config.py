@@ -241,7 +241,7 @@ class Settings(BaseSettings):
 
     # FastAPI (Future Web API)
     api_host: str = Field(
-        default="0.0.0.0",
+        default="0.0.0.0",  # nosec B104 - configurable via API_HOST env var
         description="API server host",
     )
     api_port: int = Field(
@@ -316,12 +316,12 @@ class Settings(BaseSettings):
         """Validate production-specific requirements."""
         if self.environment == "production":
             # Fail if using default secret key in production
-            if self.secret_key == "change_this_to_random_secret_key_min_32_chars":
+            if self.secret_key == "change_this_to_random_secret_key_min_32_chars":  # nosec B105 - detecting use of default placeholder, not a real password
                 raise ValueError(
                     "Cannot use default secret_key in production environment! "
                     "Set a secure SECRET_KEY in your .env file."
                 )
-        elif self.secret_key == "change_this_to_random_secret_key_min_32_chars":
+        elif self.secret_key == "change_this_to_random_secret_key_min_32_chars":  # nosec B105 - detecting use of default placeholder, not a real password
             # Warn in development/staging
             import warnings
 
