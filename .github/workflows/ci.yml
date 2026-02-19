@@ -35,7 +35,7 @@ jobs:
         run: ruff format --check src/ tests/
 
       - name: Mypy type check
-        run: mypy src/python/utils/ src/python/security/ src/python/evaluation/ --ignore-missing-imports
+        run: mypy src/python/utils/ src/python/security/ src/python/evaluation/ --ignore-missing-imports --explicit-package-bases
 
   test:
     name: Tests (Python ${{ matrix.python-version }})
@@ -57,7 +57,7 @@ jobs:
           pip install --upgrade pip
           pip install pytest pytest-cov pytest-asyncio pytest-mock
           pip install anthropic pydantic pydantic-settings structlog python-dotenv
-          pip install cryptography httpx tenacity PyJWT
+          pip install cryptography httpx tenacity PyJWT mcp
           # Optional: install if available (may fail on some platforms)
           pip install numpy || true
 
@@ -105,7 +105,7 @@ jobs:
           pip install pytest pytest-asyncio pytest-mock
           pip install anthropic pydantic pydantic-settings structlog python-dotenv
           pip install fhirclient fhir.resources httpx numpy
-          pip install cryptography tenacity PyJWT
+          pip install cryptography tenacity PyJWT mcp
 
       - name: Run FHIR MCP server tests
         env:
