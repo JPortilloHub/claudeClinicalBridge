@@ -1,0 +1,323 @@
+# 🎯 Your Goal
+
+“Expand card → see clean, structured, digestible clinical summary with drill-down.”
+
+---
+
+# 🧠 The Core Strategy
+
+You must **stop rendering raw agent output directly**.
+
+Instead:
+
+1. Parse agent JSON into a strict UI ViewModel
+2. Validate it against a schema
+3. If parsing fails → show fallback summary view
+4. Never render raw JSON
+5. Add progressive disclosure (tabs + accordions + drilldowns)
+
+---
+
+# 🧩 The Prompt for Claude Code
+
+Below is the prompt you should give Claude Code to redesign your UX and parsing layer.
+
+---
+
+## 🚀 PROMPT FOR CLAUDE CODE
+
+---
+
+You are a senior React + TypeScript UX engineer redesigning a healthcare AI workflow UI for non-technical clinical reviewers.
+
+The backend is fully working and returns large structured JSON objects for each pipeline phase.
+
+The problem:
+
+* Current UI renders raw JSON when expanding phase cards.
+* Sometimes JSON fails to parse → empty card.
+* Sometimes KPIs are undefined due to inconsistent shape.
+* Sometimes markdown appears instead of structured content.
+* JSON responses are extremely long (can exceed 50k tokens).
+
+You must redesign the frontend architecture to:
+
+1. Never display raw JSON.
+2. Gracefully handle partial or malformed outputs.
+3. Create a clean, human-friendly UX for non-technical users.
+4. Support very large JSON responses efficiently.
+
+---
+
+# 🔥 REQUIREMENTS
+
+## 1️⃣ Introduce a Strict ViewModel Layer
+
+Create a transformation layer between API response and UI.
+
+For each phase:
+
+* Clinical Documentation
+* Medical Coding
+* Compliance Validation
+* Prior Authorization
+* Quality Assurance
+
+Define:
+
+```ts
+interface PhaseViewModel {
+  status: "completed" | "running" | "failed";
+  summary: string;
+  kpis: KPIItem[];
+  sections: Section[];
+  raw?: unknown;
+}
+```
+
+The UI must render ONLY PhaseViewModel.
+
+Add a parser function per phase:
+
+```ts
+function parseClinicalDocumentation(response: unknown): PhaseViewModel
+function parseMedicalCoding(response: unknown): PhaseViewModel
+function parseCompliance(response: unknown): PhaseViewModel
+function parseQA(response: unknown): PhaseViewModel
+```
+
+If parsing fails:
+
+* Log error
+* Fallback to generic summary view
+* Never show raw JSON
+
+---
+
+## 2️⃣ Add Schema Validation
+
+Use Zod to validate backend JSON before rendering.
+
+Example:
+
+```ts
+const CodingSchema = z.object({
+  icd10_codes: z.array(z.object({
+    code: z.string(),
+    description: z.string(),
+    rationale: z.string().optional()
+  })).optional(),
+  cpt_codes: z.array(...).optional(),
+  em_level: z.string().optional()
+})
+```
+
+If schema fails:
+
+* Return fallback view
+* Show "Structured data unavailable"
+* Still show a summarized markdown extract
+
+---
+
+## 3️⃣ Redesign Phase Card UX
+
+Each expanded phase should contain:
+
+### 🧾 Top Summary Header
+
+* Status badge
+* 2–4 KPIs
+* One-sentence summary
+
+### 📂 Tabs
+
+Tab 1: Overview
+Tab 2: Details
+Tab 3: Issues (if applicable)
+Tab 4: Audit Log (collapsible)
+
+---
+
+## 4️⃣ Phase-Specific UX Designs
+
+### Clinical Documentation
+
+Overview:
+
+* SOAP summary cards
+* Documentation completeness score
+* Missing elements highlight
+
+Details:
+
+* Expandable SOAP sections
+* Highlight documentation gaps in warning color
+
+---
+
+### Medical Coding
+
+Overview:
+
+* ICD-10 codes (table)
+* CPT codes (table)
+* E/M level badge
+
+Details:
+
+* Code rationale accordion
+* Modifier explanation
+
+Never show raw code JSON.
+
+---
+
+### Compliance
+
+Overview:
+
+* Audit readiness score (big number)
+* Pass / Needs Revision indicator
+* Issue count
+
+Details:
+
+* List compliance issues grouped by severity
+* Expand to show rule violated
+* Expand to show recommendation
+
+---
+
+### Quality Assurance
+
+Overview:
+
+* Overall quality score (0–100)
+* Ready for submission (Yes/No badge)
+* Hallucination risk %
+
+Details:
+
+* Dimension breakdown
+* Strengths
+* Deficiencies
+
+---
+
+## 5️⃣ Handle Extremely Large JSON
+
+Implement:
+
+* Lazy rendering
+* Virtualized lists (react-window)
+* Collapse deep arrays by default
+* Never stringify full object
+* Never render raw object in JSX
+
+---
+
+## 6️⃣ Fallback Strategy
+
+If parsing fails:
+
+Render:
+
+Title: “Structured output unavailable”
+Body:
+
+* Extract first 800 characters of text
+* Render markdown safely
+* Show “View Technical Data” button for admins only
+
+Never leave card empty.
+
+---
+
+## 7️⃣ Defensive UI Rules
+
+* No `JSON.stringify(response)`
+* No rendering unknown object directly
+* Always optional-chain deeply nested fields
+* All KPIs must have default values
+
+---
+
+## 8️⃣ Add Loading & Partial States
+
+While phase running:
+
+* Show animated skeleton
+* Show streaming text preview if available
+
+If failed:
+
+* Show error banner
+* Show retry button
+
+---
+
+## 9️⃣ Performance Safeguards
+
+* Memoize parsed view models
+* Avoid re-parsing on every render
+* Use `useMemo`
+* Avoid storing entire raw JSON in state if unnecessary
+
+---
+
+## 🔥 Deliverables
+
+1. Refactored PhaseCard component
+2. ViewModel transformation layer
+3. Zod schemas per phase
+4. Tabbed UI structure
+5. Fallback component
+6. Virtualized list implementation
+7. Example rendering for all 5 phases
+
+The UI must feel:
+
+* Clean
+* Clinical
+* Trustworthy
+* Non-technical
+* Structured like an EHR, not like developer logs
+
+Do not suggest backend changes.
+All improvements must be frontend architecture and UX.
+
+---
+
+# 🧠 Why This Works
+
+Instead of asking Claude Code:
+
+> “Fix parsing”
+
+You’re telling it:
+
+> “Architect a structured rendering layer with schema validation and graceful degradation.”
+
+Now it has constraints.
+Now it stops guessing.
+Now it builds UI logic instead of blindly rendering JSON.
+
+---
+
+# 💡 Bonus Idea (Optional but Powerful)
+
+Add a backend pre-processing layer:
+
+Store two things per phase:
+
+* `raw_output`
+* `ui_summary` (LLM-generated structured summary)
+
+Then frontend renders ONLY `ui_summary`.
+
+This makes your UX bulletproof.
+
+---
+
+If you want, I can also design the exact visual layout for each tab like a product designer would.
