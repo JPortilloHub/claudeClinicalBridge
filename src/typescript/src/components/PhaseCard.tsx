@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PhaseResult } from '../types/api';
 import PhaseEditor from './PhaseEditor';
 import ContentRenderer from './renderers/ContentRenderer';
@@ -15,8 +15,13 @@ interface PhaseCardProps {
 
 function stripFences(s: string): string {
   const t = s.trim();
-  const m = t.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);
-  return m ? m[1].trim() : t;
+  if (t.startsWith('{') || t.startsWith('[')) return t;
+  const m = t.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
+  if (m) return m[1].trim();
+  const first = t.indexOf('{');
+  const last = t.lastIndexOf('}');
+  if (first !== -1 && last > first) return t.slice(first, last + 1);
+  return t;
 }
 
 function formatContent(raw: string | null): string {
@@ -39,8 +44,15 @@ export default function PhaseCard({
   onContentUpdated,
 }: PhaseCardProps) {
   const [editing, setEditing] = useState(false);
-  const [expanded, setExpanded] = useState(isCurrentPhase);
+  const [expanded, setExpanded] = useState(isCurrentPhase || phase.status === 'running');
   const [showRaw, setShowRaw] = useState(false);
+
+  // Auto-expand when phase starts running or completes
+  useEffect(() => {
+    if (phase.status === 'running' || (isCurrentPhase && phase.status === 'completed')) {
+      setExpanded(true);
+    }
+  }, [phase.status, isCurrentPhase]);
 
   const canRun = phase.status === 'pending' && isCurrentPhase;
   const canApprove = phase.status === 'completed' && isCurrentPhase;

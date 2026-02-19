@@ -8,7 +8,6 @@ export default function CreateWorkflow() {
   const [patientId, setPatientId] = useState('');
   const [payer, setPayer] = useState('');
   const [procedure, setProcedure] = useState('');
-  const [skipPriorAuth, setSkipPriorAuth] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,7 +26,7 @@ export default function CreateWorkflow() {
         patient_id: patientId || undefined,
         payer: payer || undefined,
         procedure: procedure || undefined,
-        skip_prior_auth: skipPriorAuth,
+        skip_prior_auth: false,
       });
       navigate(`/workflows/${workflow.id}`);
     } catch {
@@ -89,17 +88,6 @@ export default function CreateWorkflow() {
               placeholder="e.g., 99214 or MRI Brain"
             />
           </div>
-        </div>
-
-        <div className="form-group checkbox-group">
-          <label>
-            <input
-              type="checkbox"
-              checked={skipPriorAuth}
-              onChange={(e) => setSkipPriorAuth(e.target.checked)}
-            />
-            Skip Prior Authorization
-          </label>
         </div>
 
         <div className="form-actions">

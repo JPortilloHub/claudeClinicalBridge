@@ -10,16 +10,34 @@ interface ContentRendererProps {
 }
 
 /**
- * Strip markdown code fences if present.
- * Claude often returns JSON wrapped in ```json ... ``` blocks.
+ * Extract JSON from Claude's response.
+ * Claude may return:
+ *   1. Pure JSON: {"key": "value"}
+ *   2. Fenced JSON: ```json\n{...}\n```
+ *   3. Text before/after fences: "Here is the result:\n```json\n{...}\n```\nLet me know..."
+ *   4. JSON embedded in prose without fences
  */
 function extractJson(raw: string): string {
-  let s = raw.trim();
-  // Match ```json ... ``` or ``` ... ```
-  const fenceMatch = s.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);
-  if (fenceMatch) {
-    s = fenceMatch[1].trim();
+  const s = raw.trim();
+
+  // Try 1: Direct JSON parse (cleanest case)
+  if (s.startsWith('{') || s.startsWith('[')) {
+    return s;
   }
+
+  // Try 2: Extract from markdown fences (anywhere in the string)
+  const fenceMatch = s.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
+  if (fenceMatch) {
+    return fenceMatch[1].trim();
+  }
+
+  // Try 3: Find the first { and last } (JSON object embedded in text)
+  const firstBrace = s.indexOf('{');
+  const lastBrace = s.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return s.slice(firstBrace, lastBrace + 1);
+  }
+
   return s;
 }
 
