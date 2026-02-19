@@ -25,8 +25,8 @@ function extractJson(raw: string): string {
   const s = raw.trim();
   if (s.startsWith('{') || s.startsWith('[')) return s;
 
-  // Try fenced code blocks (with or without trailing newline before fence)
-  const fenceMatch = s.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  // Try fenced code blocks — greedy capture to get full block content
+  const fenceMatch = s.match(/```(?:json)?\s*\n?([\s\S]+?)\n?\s*```/);
   if (fenceMatch) return fenceMatch[1].trim();
 
   const firstBrace = s.indexOf('{');
@@ -58,21 +58,36 @@ function safeParse(raw: string | object): [unknown, boolean] {
     return [null, false];
   }
 
+  // Strategy 1: Extract JSON substring and parse directly
   const extracted = extractJson(raw);
-
-  // Try direct parse first
   try {
     return [JSON.parse(extracted), false];
   } catch {
-    // Direct parse failed — attempt repair
+    // continue
   }
 
-  // Use repair utility
+  // Strategy 2: Try parsing the raw string directly (in case extractJson mangled it)
+  try {
+    return [JSON.parse(raw.trim()), false];
+  } catch {
+    // continue
+  }
+
+  // Strategy 3: Repair the extracted JSON
   const repaired = parseJsonSafe(extracted);
   if (repaired !== null) {
     return [repaired, true];
   }
 
+  // Strategy 4: Repair the raw string (in case extraction was the issue)
+  if (extracted !== raw.trim()) {
+    const repairedRaw = parseJsonSafe(raw.trim());
+    if (repairedRaw !== null) {
+      return [repairedRaw, true];
+    }
+  }
+
+  console.warn('[phaseParsers] All parse strategies failed. First 500 chars:', raw.slice(0, 500));
   return [null, true];
 }
 
@@ -82,12 +97,41 @@ function safeParse(raw: string | object): [unknown, boolean] {
 
 function buildFallback(raw: string | object, error?: string): PhaseViewModel {
   const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
-  const preview = rawStr.length > 800 ? rawStr.slice(0, 800) + '...' : rawStr;
+
+  // Even when JSON parsing fails, show the content in a readable way.
+  // Try to split on markdown headers to create structured sections.
+  const sections: { title: string; content: unknown }[] = [];
+
+  if (rawStr.length > 0) {
+    const headerPattern = /(?:^|\n)#{1,4}\s+(.+)/g;
+    let match;
+    const breaks: { title: string; contentStart: number; headerStart: number }[] = [];
+    while ((match = headerPattern.exec(rawStr)) !== null) {
+      breaks.push({
+        title: match[1].trim(),
+        contentStart: match.index + match[0].length,
+        headerStart: match.index,
+      });
+    }
+
+    if (breaks.length >= 2) {
+      for (let i = 0; i < breaks.length; i++) {
+        const end = i + 1 < breaks.length ? breaks[i + 1].headerStart : rawStr.length;
+        const chunk = rawStr.slice(breaks[i].contentStart, end).trim();
+        if (chunk) {
+          sections.push({ title: breaks[i].title, content: chunk });
+        }
+      }
+    } else {
+      sections.push({ title: 'Agent Output', content: rawStr });
+    }
+  }
+
   return {
     status: 'unknown',
-    summary: error || 'Structured output unavailable',
-    kpis: [],
-    sections: [{ title: 'Raw Output', content: preview }],
+    summary: error || 'Displaying as text',
+    kpis: [{ label: 'Format', value: 'Text', color: 'yellow' as const }],
+    sections: sections.length > 0 ? sections : [{ title: 'Agent Output', content: rawStr }],
     raw,
   };
 }

@@ -107,8 +107,8 @@ function DetailsTab({ data }: Props) {
           <h4 className="r-section-title">Code Validations</h4>
           {codeVals.map((cv: any, i: number) => (
             <div key={i} className="r-validation-row">
-              <span className={cv.status === 'pass' ? 'r-icon-pass' : 'r-icon-fail'}>
-                {cv.status === 'pass' ? '\u2713' : '\u2717'}
+              <span className={cv.status?.toLowerCase() === 'pass' ? 'r-icon-pass' : 'r-icon-fail'}>
+                {cv.status?.toLowerCase() === 'pass' ? '\u2713' : '\u2717'}
               </span>
               <span className="r-code-value r-code-value-sm">{cv.code}</span>
               <span className="r-validation-text">
@@ -134,7 +134,7 @@ function DetailsTab({ data }: Props) {
                 <span className="r-label">Supported</span>
                 <span className="r-code-value r-code-value-sm">{emVal.supported_level || '\u2014'}</span>
               </div>
-              <span className={`r-badge ${emVal.status === 'pass' ? 'r-badge-green' : 'r-badge-red'}`}>
+              <span className={`r-badge ${emVal.status?.toLowerCase() === 'pass' ? 'r-badge-green' : 'r-badge-red'}`}>
                 {emVal.status || '\u2014'}
               </span>
             </div>
@@ -199,9 +199,9 @@ function IssuesTab({ data }: Props) {
   return (
     <div className="r-tab-inner">
       {sortedIssues.map((issue: any, i: number) => (
-        <div key={i} className={`r-card r-issue-card r-issue-${issue.severity || 'info'}`}>
+        <div key={i} className={`r-card r-issue-card r-issue-${issue.severity?.toLowerCase() || 'info'}`}>
           <div className="r-card-header">
-            <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity}</span>
+            <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity?.toLowerCase()}</span>
             {issue.category && <span className="r-badge r-badge-gray">{issue.category?.replace(/_/g, ' ')}</span>}
           </div>
           <p className="r-card-detail">{issue.description}</p>
