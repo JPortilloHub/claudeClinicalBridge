@@ -181,7 +181,7 @@ export default function QualityView({ data }: Props) {
         {
           label: 'Issues',
           count: issueCount,
-          content: <IssuesTab data={data} />,
+          content: issueCount > 0 ? <IssuesTab data={data} /> : null,
         },
       ]} />
     </div>

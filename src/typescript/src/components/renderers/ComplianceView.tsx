@@ -231,7 +231,7 @@ export default function ComplianceView({ data }: Props) {
         {
           label: 'Issues',
           count: issues.length,
-          content: <IssuesTab data={data} />,
+          content: issues.length > 0 ? <IssuesTab data={data} /> : null,
         },
       ]} />
     </div>

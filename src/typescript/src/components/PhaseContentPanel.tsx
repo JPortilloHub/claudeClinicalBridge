@@ -8,7 +8,6 @@ interface Props {
   label: string;
   workflowId: string;
   isCurrentPhase: boolean;
-  showTechnicalInfo: boolean;
   onRun: () => void;
   onApprove: () => void;
   onContentUpdated: () => void;
@@ -19,7 +18,6 @@ export default function PhaseContentPanel({
   label,
   workflowId,
   isCurrentPhase,
-  showTechnicalInfo,
   onRun,
   onApprove,
   onContentUpdated,
@@ -35,18 +33,6 @@ export default function PhaseContentPanel({
 
   return (
     <div className="wd-phase-content-scroll">
-      {/* Technical info bar */}
-      {showTechnicalInfo && (phase.duration_seconds || (phase.input_tokens && phase.output_tokens)) && (
-        <div className="wd-phase-technical-bar">
-          {phase.duration_seconds && (
-            <span>Duration: {phase.duration_seconds.toFixed(1)}s</span>
-          )}
-          {phase.input_tokens && phase.output_tokens && (
-            <span>Tokens: {(phase.input_tokens + phase.output_tokens).toLocaleString()}</span>
-          )}
-        </div>
-      )}
-
       {/* Error banner */}
       {isFailed && phase.error && (
         <div className="phase-error-banner">

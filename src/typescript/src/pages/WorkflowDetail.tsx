@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getWorkflow, runPhase, approvePhase } from '../api/workflows';
 import type { WorkflowDetail as WorkflowType } from '../types/api';
@@ -22,10 +22,8 @@ export default function WorkflowDetail() {
   const [error, setError] = useState('');
   const isPolling = useRef(false);
 
-  // UI state for the new layout
   const [activePhase, setActivePhase] = useState<string>(PHASE_ORDER[0]);
   const [noteCollapsed, setNoteCollapsed] = useState(false);
-  const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
   const userSelectedPhase = useRef(false);
 
   const fetchWorkflow = useCallback(async () => {
@@ -35,12 +33,10 @@ export default function WorkflowDetail() {
       setWorkflow(data);
       setError('');
 
-      // Auto-advance to current phase unless user manually selected one
       if (!userSelectedPhase.current && data.current_phase) {
         setActivePhase(data.current_phase);
       }
 
-      // Start or stop polling based on whether any phase is running
       const hasRunning = data.phase_results.some((p) => p.status === 'running');
       isPolling.current = hasRunning;
     } catch {
@@ -50,19 +46,16 @@ export default function WorkflowDetail() {
     }
   }, [id]);
 
-  // Initial fetch
   useEffect(() => {
     fetchWorkflow();
   }, [fetchWorkflow]);
 
-  // Polling interval — always runs but only fetches when isPolling is true
   useEffect(() => {
     const interval = setInterval(() => {
       if (isPolling.current) {
         fetchWorkflow();
       }
     }, 3000);
-
     return () => clearInterval(interval);
   }, [fetchWorkflow]);
 
@@ -81,7 +74,7 @@ export default function WorkflowDetail() {
     if (!id) return;
     try {
       await approvePhase(id, phaseName);
-      userSelectedPhase.current = false; // allow auto-advance after approve
+      userSelectedPhase.current = false;
       await fetchWorkflow();
     } catch {
       setError(`Failed to approve phase: ${phaseName}`);
@@ -93,6 +86,14 @@ export default function WorkflowDetail() {
     setActivePhase(name);
   };
 
+  // Filter out prior_auth when skipped (Req 1)
+  const visiblePhases = useMemo(() => {
+    if (!workflow) return PHASE_ORDER;
+    return workflow.skip_prior_auth
+      ? PHASE_ORDER.filter((p) => p !== 'prior_auth')
+      : PHASE_ORDER;
+  }, [workflow]);
+
   if (loading) return <div className="loading">Loading workflow...</div>;
   if (error && !workflow) return <div className="error-message">{error}</div>;
   if (!workflow) return <div className="error-message">Workflow not found</div>;
@@ -101,56 +102,43 @@ export default function WorkflowDetail() {
     workflow.phase_results.map((p) => [p.phase_name, p])
   );
 
-  const steps = PHASE_ORDER.map((name) => ({
+  const steps = visiblePhases.map((name) => ({
     name,
     label: PHASE_LABELS[name],
     status: phaseMap[name]?.status || 'pending',
   }));
 
   const currentPhaseResult = phaseMap[activePhase];
+  const shortId = id ? id.slice(0, 8) : '';
 
   return (
     <div className="wd-container">
-      {/* Left pane: clinical note */}
       <ClinicalNotePane
         workflow={workflow}
         collapsed={noteCollapsed}
         onToggleCollapse={() => setNoteCollapsed(!noteCollapsed)}
       />
 
-      {/* Right pane: header + stepper + phase content */}
       <div className="wd-content-pane">
         {/* Header bar */}
         <div className="wd-header">
           <div className="wd-header-left">
-            <Link to="/" className="back-link">&larr; Back</Link>
-            <h2>Workflow</h2>
+            <Link to="/" className="wd-back-btn">&larr; Back</Link>
+            <h2 className="wd-title">Workflow <span className="wd-title-id">#{shortId}</span></h2>
             <span className={`status-badge status-${workflow.status}`}>
               {workflow.status.replace('_', ' ')}
             </span>
-          </div>
-          <div className="wd-header-right">
-            <button
-              className={`btn-toggle-technical ${showTechnicalInfo ? 'btn-toggle-technical--active' : ''}`}
-              onClick={() => setShowTechnicalInfo(!showTechnicalInfo)}
-            >
-              {showTechnicalInfo ? 'Hide Tech Info' : 'Show Tech Info'}
-            </button>
           </div>
         </div>
 
         {error && <div className="error-message" style={{ margin: '0 24px', marginTop: '12px' }}>{error}</div>}
 
-        {/* Phase stepper */}
         <PhaseStepper
           phases={steps}
           activePhase={activePhase}
           onSelectPhase={handleSelectPhase}
-          showTechnicalInfo={showTechnicalInfo}
-          phaseMap={phaseMap}
         />
 
-        {/* Phase content */}
         {currentPhaseResult ? (
           <PhaseContentPanel
             key={activePhase}
@@ -158,7 +146,6 @@ export default function WorkflowDetail() {
             label={PHASE_LABELS[activePhase]}
             workflowId={id!}
             isCurrentPhase={workflow.current_phase === activePhase}
-            showTechnicalInfo={showTechnicalInfo}
             onRun={() => handleRunPhase(activePhase)}
             onApprove={() => handleApprovePhase(activePhase)}
             onContentUpdated={fetchWorkflow}
