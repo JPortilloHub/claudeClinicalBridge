@@ -78,12 +78,16 @@ function extractAllJsonBlocks(raw: string): JsonBlockWithContext[] {
 
 /**
  * Extract a value from markdown prose using a regex pattern.
- * Returns the first capture group, stripped of markdown bold markers, or null.
+ * Strips markdown bold/italic markers (** and *) from the input before matching,
+ * so regex patterns can match plain text without worrying about formatting.
+ * Returns the first capture group or null.
  */
 function extractMarkdownField(raw: string, pattern: RegExp): string | null {
   if (typeof raw !== 'string') return null;
-  const m = raw.match(pattern);
-  return m ? m[1].trim().replace(/\*+/g, '').trim() : null;
+  // Strip markdown bold/italic markers so regexes match plain text
+  const stripped = raw.replace(/\*+/g, '');
+  const m = stripped.match(pattern);
+  return m ? m[1].trim() : null;
 }
 
 /**
@@ -317,7 +321,7 @@ export function parseMedicalCoding(raw: string | object): PhaseViewModel {
         { title: 'Coding Notes', content: data?.coding_notes },
         { title: 'Queries Needed', content: data?.queries_needed },
       ].filter(s => s.content != null),
-      raw: json,
+      raw: data,
     };
   } catch (e) {
     return buildFallback(raw, e instanceof Error ? e.message : 'Parse error');
@@ -416,7 +420,7 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
 
     // Markdown fallback: if key fields are missing, extract from raw string
     if (typeof raw === 'string' && (!data?.overall_status || !data?.risk_level)) {
-      const mdStatus = extractMarkdownField(raw, /(?:overall\s*)?compliance\s*status[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+      const mdStatus = extractMarkdownField(raw, /(?:overall\s*)?compliance\s*status[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w ]*\w)/i);
       const mdRisk = extractMarkdownField(raw, /risk\s*level[:\s]*(?:🟡\s*|🟢\s*|🔴\s*)?(\w+)/i);
       const mdScoreStr = extractMarkdownField(raw, /audit\s*(?:readiness\s*)?score[:\s]*(\d+)\s*\/\s*100/i);
 
@@ -497,7 +501,7 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
         { title: 'Compliance Issues', content: data?.compliance_issues },
         { title: 'Payer Checks', content: data?.payer_checks },
       ].filter(s => s.content != null),
-      raw: json,
+      raw: data,
     };
   } catch (e) {
     return buildFallback(raw, e instanceof Error ? e.message : 'Parse error');
@@ -509,7 +513,7 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
  * and an executive summary in prose.
  */
 function assembleComplianceFromMarkdown(raw: string): Record<string, unknown> | null {
-  const mdStatus = extractMarkdownField(raw, /(?:overall\s*)?compliance\s*status[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+  const mdStatus = extractMarkdownField(raw, /(?:overall\s*)?compliance\s*status[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w ]*\w)/i);
   const mdRisk = extractMarkdownField(raw, /risk\s*level[:\s]*(?:🟡\s*|🟢\s*|🔴\s*)?(\w+)/i);
   const mdScoreStr = extractMarkdownField(raw, /audit\s*(?:readiness\s*)?score[:\s]*(\d+)\s*\/\s*100/i);
 
@@ -622,7 +626,7 @@ export function parseQualityAssurance(raw: string | object): PhaseViewModel {
 
     // Markdown fallback: if key fields are missing, extract from raw string
     if (typeof raw === 'string' && (!data?.overall_quality || data?.quality_score == null)) {
-      const mdQuality = extractMarkdownField(raw, /overall\s*quality\s*(?:assessment)?[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+      const mdQuality = extractMarkdownField(raw, /overall\s*quality\s*(?:assessment)?[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w ]*\w)/i);
       const mdScoreStr = extractMarkdownField(raw, /quality\s*score[:\s]*(\d+)\s*\/\s*100/i);
       const mdReady = extractMarkdownField(raw, /ready\s*for\s*submission[:\s]*(?:❌\s*|✅\s*)?(\w+)/i);
 
@@ -702,7 +706,7 @@ export function parseQualityAssurance(raw: string | object): PhaseViewModel {
         { title: 'Improvements', content: data?.improvements },
         { title: 'Traceability', content: data?.traceability },
       ].filter(s => s.content != null),
-      raw: json,
+      raw: data,
     };
   } catch (e) {
     return buildFallback(raw, e instanceof Error ? e.message : 'Parse error');
@@ -714,7 +718,7 @@ export function parseQualityAssurance(raw: string | object): PhaseViewModel {
  * and an executive summary in prose.
  */
 function assembleQualityFromMarkdown(raw: string): Record<string, unknown> | null {
-  const mdQuality = extractMarkdownField(raw, /overall\s*quality\s*(?:assessment)?[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+  const mdQuality = extractMarkdownField(raw, /overall\s*quality\s*(?:assessment)?[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w ]*\w)/i);
   const mdScoreStr = extractMarkdownField(raw, /quality\s*score[:\s]*(\d+)\s*\/\s*100/i);
   const mdReady = extractMarkdownField(raw, /ready\s*for\s*submission[:\s]*(?:❌\s*|✅\s*)?(\w+)/i);
 
