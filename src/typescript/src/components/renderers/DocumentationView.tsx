@@ -24,9 +24,34 @@ function BulletList({ items, icon }: { items: any[]; icon?: string }) {
   return (
     <ul className="r-list">
       {items.map((item, i) => (
-        <li key={i}>{icon && <span className="r-list-icon">{icon}</span>}{typeof item === 'object' ? JSON.stringify(item) : String(item)}</li>
+        <li key={i}>
+          {icon && <span className="r-list-icon">{icon}</span>}
+          {typeof item === 'string' ? item : <GapItem item={item} />}
+        </li>
       ))}
     </ul>
+  );
+}
+
+function GapItem({ item }: { item: any }) {
+  if (!item || typeof item !== 'object') return <>{String(item)}</>;
+  const title = item.gap || item.description || item.title || item.issue || Object.values(item).find(v => typeof v === 'string');
+  const details: { label: string; value: string }[] = [];
+  if (item.description && item.description !== title) details.push({ label: 'Detail', value: item.description });
+  if (item.impact) details.push({ label: 'Impact', value: item.impact });
+  if (item.recommendation) details.push({ label: 'Action', value: item.recommendation });
+  if (item.remediation) details.push({ label: 'Action', value: item.remediation });
+  return (
+    <div className="r-gap-item">
+      <span className="r-gap-title">{String(title || 'Documentation gap')}</span>
+      {details.length > 0 && (
+        <div className="r-gap-details">
+          {details.map((d, i) => (
+            <span key={i} className="r-gap-detail"><strong>{d.label}:</strong> {d.value}</span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

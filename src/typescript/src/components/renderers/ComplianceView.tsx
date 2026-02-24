@@ -209,7 +209,16 @@ function IssuesTab({ data }: Props) {
             <p className="r-card-note"><strong>Reference:</strong> {issue.regulatory_reference}</p>
           )}
           {issue.remediation && (
-            <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
+            Array.isArray(issue.remediation) ? (
+              <div className="r-card-remediation">
+                <strong>Fix:</strong>
+                <ul className="r-list r-list-compact">
+                  {issue.remediation.map((r: string, j: number) => <li key={j}>{r}</li>)}
+                </ul>
+              </div>
+            ) : (
+              <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
+            )
           )}
         </div>
       ))}

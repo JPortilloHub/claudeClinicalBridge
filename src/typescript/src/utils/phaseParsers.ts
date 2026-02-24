@@ -43,6 +43,49 @@ function extractJson(raw: string): string {
   return s;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Markdown-embedded JSON helpers                                     */
+/* ------------------------------------------------------------------ */
+
+interface JsonBlockWithContext {
+  json: unknown;
+  precedingText: string;
+}
+
+/**
+ * Extract ALL fenced JSON code blocks from a markdown string,
+ * each with the preceding ~200 chars for context-based classification.
+ */
+function extractAllJsonBlocks(raw: string): JsonBlockWithContext[] {
+  if (typeof raw !== 'string') return [];
+  const results: JsonBlockWithContext[] = [];
+  const fenceRe = /```(?:json)?\s*\n?([\s\S]+?)\n?\s*```/g;
+  let match;
+  while ((match = fenceRe.exec(raw)) !== null) {
+    const preceding = raw.slice(Math.max(0, match.index - 300), match.index);
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      results.push({ json: parsed, precedingText: preceding });
+    } catch {
+      const repaired = parseJsonSafe(match[1].trim());
+      if (repaired !== null) {
+        results.push({ json: repaired, precedingText: preceding });
+      }
+    }
+  }
+  return results;
+}
+
+/**
+ * Extract a value from markdown prose using a regex pattern.
+ * Returns the first capture group, stripped of markdown bold markers, or null.
+ */
+function extractMarkdownField(raw: string, pattern: RegExp): string | null {
+  if (typeof raw !== 'string') return null;
+  const m = raw.match(pattern);
+  return m ? m[1].trim().replace(/\*+/g, '').trim() : null;
+}
+
 /**
  * Parse JSON with repair support for truncated LLM outputs.
  * Returns [parsed, wasTruncated] — wasTruncated is true if repair was needed.
@@ -214,13 +257,31 @@ export function parseClinicalDocumentation(raw: string | object): PhaseViewModel
 export function parseMedicalCoding(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
+    // Even with no top-level JSON, try assembling from markdown blocks
+    if (typeof raw === 'string') {
+      const assembled = assembleCodingFromMarkdown(raw);
+      if (assembled) {
+        return parseMedicalCoding(assembled);
+      }
+    }
     return buildFallback(raw, 'Unable to parse coding output');
   }
 
   try {
     const result = CodingSchema.safeParse(json);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = (result.success ? result.data : json) as any;
+    let data = (result.success ? result.data : json) as any;
+
+    // If the parsed JSON is a single code object (has 'code' but no 'diagnoses'),
+    // or has empty arrays, try assembling from markdown blocks
+    const hasDiagnoses = Array.isArray(data?.diagnoses) && data.diagnoses.length > 0;
+    const hasProcedures = Array.isArray(data?.procedures) && data.procedures.length > 0;
+    if (!hasDiagnoses && !hasProcedures && typeof raw === 'string') {
+      const assembled = assembleCodingFromMarkdown(raw);
+      if (assembled) {
+        data = assembled;
+      }
+    }
 
     const kpis: KPIItem[] = [];
     const diagnoses = data?.diagnoses || [];
@@ -263,6 +324,74 @@ export function parseMedicalCoding(raw: string | object): PhaseViewModel {
   }
 }
 
+/**
+ * Assemble a coding data object from markdown with multiple embedded JSON blocks.
+ * Classifies blocks by surrounding header context (ICD-10/diagnosis vs CPT/procedure vs E/M).
+ */
+function assembleCodingFromMarkdown(raw: string): Record<string, unknown> | null {
+  const blocks = extractAllJsonBlocks(raw);
+  if (blocks.length === 0) return null;
+
+  const diagnoses: unknown[] = [];
+  const procedures: unknown[] = [];
+  let emCalculation: unknown = null;
+  const codingNotes: string[] = [];
+  const queriesNeeded: string[] = [];
+
+  for (const block of blocks) {
+    const ctx = block.precedingText.toLowerCase();
+    const obj = block.json as Record<string, unknown>;
+
+    // If a block already has the full structure, return it directly
+    if (obj && (Array.isArray(obj.diagnoses) || Array.isArray(obj.procedures))) {
+      return obj;
+    }
+
+    // Classify by preceding markdown context
+    const isDiagnosis = /icd[- ]?10|diagnos/i.test(ctx);
+    const isProcedure = /cpt|procedure/i.test(ctx);
+    const isEM = /e\/?m\s|evaluation.*management/i.test(ctx);
+
+    if (isEM || (obj?.method && obj?.level)) {
+      emCalculation = obj;
+    } else if (isProcedure || (!isDiagnosis && obj?.code && /^\d{5}/.test(String(obj.code)))) {
+      // CPT codes are 5-digit
+      if (Array.isArray(obj)) { procedures.push(...obj); } else { procedures.push(obj); }
+    } else if (isDiagnosis || (obj?.code && /^[A-Z]\d/.test(String(obj.code)))) {
+      // ICD-10 codes start with a letter followed by digit
+      if (Array.isArray(obj)) { diagnoses.push(...obj); } else { diagnoses.push(obj); }
+    } else if (obj?.code) {
+      // Fallback: classify by code format
+      const code = String(obj.code);
+      if (/^[A-Z]\d/.test(code)) { diagnoses.push(obj); }
+      else if (/^\d{5}/.test(code)) { procedures.push(obj); }
+      else { diagnoses.push(obj); }
+    }
+  }
+
+  // Extract coding notes and queries from markdown if present
+  const notesMatch = raw.match(/coding.?notes[:\s]*\n([\s\S]*?)(?=\n#|$)/i);
+  if (notesMatch) {
+    notesMatch[1].split('\n').filter(l => l.trim().startsWith('-') || l.trim().startsWith('*'))
+      .forEach(l => codingNotes.push(l.replace(/^[\s\-*]+/, '').trim()));
+  }
+  const queriesMatch = raw.match(/queries.?needed[:\s]*\n([\s\S]*?)(?=\n#|$)/i);
+  if (queriesMatch) {
+    queriesMatch[1].split('\n').filter(l => l.trim().startsWith('-') || l.trim().startsWith('*'))
+      .forEach(l => queriesNeeded.push(l.replace(/^[\s\-*]+/, '').trim()));
+  }
+
+  if (diagnoses.length === 0 && procedures.length === 0 && !emCalculation) return null;
+
+  const result: Record<string, unknown> = {};
+  if (diagnoses.length > 0) result.diagnoses = diagnoses;
+  if (procedures.length > 0) result.procedures = procedures;
+  if (emCalculation) result.em_calculation = emCalculation;
+  if (codingNotes.length > 0) result.coding_notes = codingNotes;
+  if (queriesNeeded.length > 0) result.queries_needed = queriesNeeded;
+  return result;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Compliance Validation parser                                       */
 /* ------------------------------------------------------------------ */
@@ -270,19 +399,60 @@ export function parseMedicalCoding(raw: string | object): PhaseViewModel {
 export function parseCompliance(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
+    // Try assembling from markdown
+    if (typeof raw === 'string') {
+      const assembled = assembleComplianceFromMarkdown(raw);
+      if (assembled) {
+        return parseCompliance(assembled);
+      }
+    }
     return buildFallback(raw, 'Unable to parse compliance output');
   }
 
   try {
     const result = ComplianceSchema.safeParse(json);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = (result.success ? result.data : json) as any;
+    let data = (result.success ? result.data : json) as any;
+
+    // Markdown fallback: if key fields are missing, extract from raw string
+    if (typeof raw === 'string' && (!data?.overall_status || !data?.risk_level)) {
+      const mdStatus = extractMarkdownField(raw, /(?:overall\s*)?compliance\s*status[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+      const mdRisk = extractMarkdownField(raw, /risk\s*level[:\s]*(?:🟡\s*|🟢\s*|🔴\s*)?(\w+)/i);
+      const mdScoreStr = extractMarkdownField(raw, /audit\s*(?:readiness\s*)?score[:\s]*(\d+)\s*\/\s*100/i);
+
+      if (!data.overall_status && mdStatus) {
+        data = { ...data, overall_status: mdStatus.toLowerCase().replace(/\s+/g, '_') };
+      }
+      if (!data.risk_level && mdRisk) {
+        data = { ...data, risk_level: mdRisk.toLowerCase() };
+      }
+      if (data.audit_readiness_score == null && mdScoreStr) {
+        data = { ...data, audit_readiness_score: parseInt(mdScoreStr, 10) };
+      }
+
+      // Collect compliance issues from JSON blocks
+      if ((!data.compliance_issues || data.compliance_issues.length === 0)) {
+        const blocks = extractAllJsonBlocks(raw);
+        const issues: unknown[] = [];
+        for (const block of blocks) {
+          const obj = block.json;
+          if (Array.isArray(obj)) {
+            issues.push(...obj.filter((item: any) => item?.severity || item?.category));
+          } else if (obj && typeof obj === 'object' && ((obj as any).severity || (obj as any).risk_id)) {
+            issues.push(obj);
+          }
+        }
+        if (issues.length > 0) {
+          data = { ...data, compliance_issues: issues };
+        }
+      }
+    }
 
     const kpis: KPIItem[] = [];
     const status = data?.overall_status;
     const statusLower = (status || '').toLowerCase();
     const statusColor = statusLower === 'pass' ? 'green' as const
-      : statusLower === 'needs_review' ? 'yellow' as const
+      : (statusLower === 'needs_review' || statusLower === 'needs review') ? 'yellow' as const
       : statusLower === 'fail' ? 'red' as const : 'gray' as const;
 
     kpis.push({ label: 'Status', value: (status || 'Unknown').replace(/_/g, ' '), color: statusColor });
@@ -304,8 +474,13 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
       color: criticalCount > 0 ? 'red' : issues.length > 0 ? 'yellow' : 'green',
     });
 
-    if (data?.risk_level) {
-      kpis.push({ label: 'Risk', value: data.risk_level, color: statusColor });
+    const riskLevel = data?.risk_level;
+    if (riskLevel) {
+      const riskLower = riskLevel.toLowerCase();
+      const riskColor = riskLower === 'low' ? 'green' as const
+        : riskLower === 'medium' ? 'yellow' as const
+        : riskLower === 'high' ? 'red' as const : statusColor;
+      kpis.push({ label: 'Risk', value: riskLevel, color: riskColor });
     }
 
     addTruncationWarning(kpis, wasTruncated);
@@ -327,6 +502,36 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
   } catch (e) {
     return buildFallback(raw, e instanceof Error ? e.message : 'Parse error');
   }
+}
+
+/**
+ * Assemble compliance data from a markdown response with embedded JSON blocks
+ * and an executive summary in prose.
+ */
+function assembleComplianceFromMarkdown(raw: string): Record<string, unknown> | null {
+  const mdStatus = extractMarkdownField(raw, /(?:overall\s*)?compliance\s*status[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+  const mdRisk = extractMarkdownField(raw, /risk\s*level[:\s]*(?:🟡\s*|🟢\s*|🔴\s*)?(\w+)/i);
+  const mdScoreStr = extractMarkdownField(raw, /audit\s*(?:readiness\s*)?score[:\s]*(\d+)\s*\/\s*100/i);
+
+  const blocks = extractAllJsonBlocks(raw);
+  const issues: unknown[] = [];
+  for (const block of blocks) {
+    const obj = block.json;
+    if (Array.isArray(obj)) {
+      issues.push(...obj.filter((item: any) => item?.severity || item?.category));
+    } else if (obj && typeof obj === 'object' && ((obj as any).severity || (obj as any).risk_id)) {
+      issues.push(obj);
+    }
+  }
+
+  if (!mdStatus && !mdRisk && issues.length === 0) return null;
+
+  const result: Record<string, unknown> = {};
+  if (mdStatus) result.overall_status = mdStatus.toLowerCase().replace(/\s+/g, '_');
+  if (mdRisk) result.risk_level = mdRisk.toLowerCase();
+  if (mdScoreStr) result.audit_readiness_score = parseInt(mdScoreStr, 10);
+  if (issues.length > 0) result.compliance_issues = issues;
+  return result;
 }
 
 /* ------------------------------------------------------------------ */
@@ -400,13 +605,52 @@ export function parsePriorAuth(raw: string | object): PhaseViewModel {
 export function parseQualityAssurance(raw: string | object): PhaseViewModel {
   const [json, wasTruncated] = safeParse(raw);
   if (json === null || typeof json !== 'object') {
+    // Try assembling from markdown
+    if (typeof raw === 'string') {
+      const assembled = assembleQualityFromMarkdown(raw);
+      if (assembled) {
+        return parseQualityAssurance(assembled);
+      }
+    }
     return buildFallback(raw, 'Unable to parse quality assurance output');
   }
 
   try {
     const result = QualitySchema.safeParse(json);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = (result.success ? result.data : json) as any;
+    let data = (result.success ? result.data : json) as any;
+
+    // Markdown fallback: if key fields are missing, extract from raw string
+    if (typeof raw === 'string' && (!data?.overall_quality || data?.quality_score == null)) {
+      const mdQuality = extractMarkdownField(raw, /overall\s*quality\s*(?:assessment)?[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+      const mdScoreStr = extractMarkdownField(raw, /quality\s*score[:\s]*(\d+)\s*\/\s*100/i);
+      const mdReady = extractMarkdownField(raw, /ready\s*for\s*submission[:\s]*(?:❌\s*|✅\s*)?(\w+)/i);
+
+      if (!data.overall_quality && mdQuality) {
+        data = { ...data, overall_quality: mdQuality.toLowerCase().replace(/\s+/g, '_') };
+      }
+      if (data.quality_score == null && mdScoreStr) {
+        data = { ...data, quality_score: parseInt(mdScoreStr, 10) };
+      }
+      if (data.ready_for_submission == null && mdReady) {
+        data = { ...data, ready_for_submission: mdReady.toLowerCase() === 'yes' };
+      }
+
+      // Collect structured data from JSON blocks
+      if (!data.dimensions || !data.critical_issues) {
+        const blocks = extractAllJsonBlocks(raw);
+        for (const block of blocks) {
+          const obj = block.json as Record<string, unknown>;
+          if (obj && typeof obj === 'object') {
+            if (obj.dimensions && !data.dimensions) data = { ...data, dimensions: obj.dimensions };
+            if (Array.isArray(obj.critical_issues) && !data.critical_issues) data = { ...data, critical_issues: obj.critical_issues };
+            if (Array.isArray(obj.warnings) && !data.warnings) data = { ...data, warnings: obj.warnings };
+            if (Array.isArray(obj.improvements) && !data.improvements) data = { ...data, improvements: obj.improvements };
+            if (obj.traceability && !data.traceability) data = { ...data, traceability: obj.traceability };
+          }
+        }
+      }
+    }
 
     const kpis: KPIItem[] = [];
 
@@ -415,7 +659,7 @@ export function parseQualityAssurance(raw: string | object): PhaseViewModel {
       kpis.push({
         label: 'Quality',
         value: data.overall_quality.replace(/_/g, ' '),
-        color: q === 'approved' ? 'green' : q === 'needs_revision' ? 'yellow' : 'red',
+        color: q === 'approved' ? 'green' : (q === 'needs_revision' || q === 'needs revision') ? 'yellow' : 'red',
       });
     }
 
@@ -463,6 +707,38 @@ export function parseQualityAssurance(raw: string | object): PhaseViewModel {
   } catch (e) {
     return buildFallback(raw, e instanceof Error ? e.message : 'Parse error');
   }
+}
+
+/**
+ * Assemble quality data from a markdown response with embedded JSON blocks
+ * and an executive summary in prose.
+ */
+function assembleQualityFromMarkdown(raw: string): Record<string, unknown> | null {
+  const mdQuality = extractMarkdownField(raw, /overall\s*quality\s*(?:assessment)?[:\s]*(?:⚠️\s*|✅\s*|❌\s*)?(\w[\w\s]*\w)/i);
+  const mdScoreStr = extractMarkdownField(raw, /quality\s*score[:\s]*(\d+)\s*\/\s*100/i);
+  const mdReady = extractMarkdownField(raw, /ready\s*for\s*submission[:\s]*(?:❌\s*|✅\s*)?(\w+)/i);
+
+  const blocks = extractAllJsonBlocks(raw);
+
+  if (!mdQuality && !mdScoreStr && blocks.length === 0) return null;
+
+  const result: Record<string, unknown> = {};
+  if (mdQuality) result.overall_quality = mdQuality.toLowerCase().replace(/\s+/g, '_');
+  if (mdScoreStr) result.quality_score = parseInt(mdScoreStr, 10);
+  if (mdReady) result.ready_for_submission = mdReady.toLowerCase() === 'yes';
+
+  for (const block of blocks) {
+    const obj = block.json as Record<string, unknown>;
+    if (obj && typeof obj === 'object') {
+      if (obj.dimensions && !result.dimensions) result.dimensions = obj.dimensions;
+      if (Array.isArray(obj.critical_issues) && !result.critical_issues) result.critical_issues = obj.critical_issues;
+      if (Array.isArray(obj.warnings) && !result.warnings) result.warnings = obj.warnings;
+      if (Array.isArray(obj.improvements) && !result.improvements) result.improvements = obj.improvements;
+      if (obj.traceability && !result.traceability) result.traceability = obj.traceability;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 /* ------------------------------------------------------------------ */
