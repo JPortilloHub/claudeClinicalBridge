@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { parsePhaseContent } from '../../utils/phaseParsers';
-import KPIHeader from './KPIHeader';
 import FallbackView from './FallbackView';
 import DocumentationView from './DocumentationView';
 import CodingView from './CodingView';
@@ -43,7 +42,6 @@ export default function ContentRenderer({ phaseName, content }: ContentRendererP
 
   return (
     <div className="r-content-renderer">
-      <KPIHeader summary={viewModel.summary} kpis={viewModel.kpis} />
       {viewComponent}
     </div>
   );

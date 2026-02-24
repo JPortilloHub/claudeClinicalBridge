@@ -434,20 +434,44 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
         data = { ...data, audit_readiness_score: parseInt(mdScoreStr, 10) };
       }
 
-      // Collect compliance issues from JSON blocks
-      if ((!data.compliance_issues || data.compliance_issues.length === 0)) {
+      // Collect structured data from JSON blocks using context-aware classification
+      if (!data.compliance_issues || data.compliance_issues.length === 0 || !data.code_validations || !data.em_validation || !data.payer_checks) {
         const blocks = extractAllJsonBlocks(raw);
         const issues: unknown[] = [];
+        const codeVals: unknown[] = [];
+        let emVal: unknown = null;
+        let payerChk: unknown = null;
+
         for (const block of blocks) {
+          const classification = classifyComplianceBlock(block);
           const obj = block.json;
-          if (Array.isArray(obj)) {
-            issues.push(...obj.filter((item: any) => item?.severity || item?.category));
-          } else if (obj && typeof obj === 'object' && ((obj as any).severity || (obj as any).risk_id)) {
-            issues.push(obj);
+
+          if (classification === 'code_validation' && !data.code_validations) {
+            if (Array.isArray(obj)) { codeVals.push(...obj); } else { codeVals.push(obj); }
+          } else if (classification === 'em_validation' && !data.em_validation) {
+            emVal = obj;
+          } else if (classification === 'payer_checks' && !data.payer_checks) {
+            payerChk = obj;
+          } else if (classification === 'compliance_issue' && (!data.compliance_issues || data.compliance_issues.length === 0)) {
+            if (Array.isArray(obj)) {
+              issues.push(...obj.filter((item: any) => item?.severity || item?.category));
+            } else if (obj && typeof obj === 'object' && ((obj as any).severity || (obj as any).risk_id)) {
+              issues.push(obj);
+            }
           }
         }
-        if (issues.length > 0) {
+
+        if (issues.length > 0 && (!data.compliance_issues || data.compliance_issues.length === 0)) {
           data = { ...data, compliance_issues: issues };
+        }
+        if (codeVals.length > 0 && !data.code_validations) {
+          data = { ...data, code_validations: codeVals };
+        }
+        if (emVal && !data.em_validation) {
+          data = { ...data, em_validation: emVal };
+        }
+        if (payerChk && !data.payer_checks) {
+          data = { ...data, payer_checks: payerChk };
         }
       }
     }
@@ -509,6 +533,36 @@ export function parseCompliance(raw: string | object): PhaseViewModel {
 }
 
 /**
+ * Classify a JSON block from compliance markdown into its category based on
+ * the block's structure and the preceding markdown text.
+ */
+function classifyComplianceBlock(block: JsonBlockWithContext): 'code_validation' | 'em_validation' | 'payer_checks' | 'compliance_issue' | 'unknown' {
+  const ctx = block.precedingText.toLowerCase();
+  const obj = block.json as Record<string, unknown>;
+
+  // Check preceding text for context clues
+  const isCodeValidation = /code\s*validation|code[- ]to[- ]documentation/i.test(ctx);
+  const isEmValidation = /e\/?m\s*validation|e\/?m\s*level\s*v/i.test(ctx);
+  const isPayerCheck = /payer\s*check|payer\s*requirement|payer\s*specific/i.test(ctx);
+  const isComplianceRisk = /compliance\s*risk|risks?\s*identified|audit\s*risk|compliance\s*issue/i.test(ctx);
+
+  if (isCodeValidation) return 'code_validation';
+  if (isEmValidation) return 'em_validation';
+  if (isPayerCheck) return 'payer_checks';
+  if (isComplianceRisk) return 'compliance_issue';
+
+  // Fallback: classify by object structure
+  if (obj && typeof obj === 'object') {
+    if ('documented_level' in obj || 'supported_level' in obj) return 'em_validation';
+    if ('prior_auth_required' in obj || 'documentation_complete' in obj) return 'payer_checks';
+    if ('code' in obj && 'status' in obj && 'documentation_support' in obj) return 'code_validation';
+    if ('severity' in obj || 'risk_id' in obj) return 'compliance_issue';
+  }
+
+  return 'unknown';
+}
+
+/**
  * Assemble compliance data from a markdown response with embedded JSON blocks
  * and an executive summary in prose.
  */
@@ -519,22 +573,44 @@ function assembleComplianceFromMarkdown(raw: string): Record<string, unknown> | 
 
   const blocks = extractAllJsonBlocks(raw);
   const issues: unknown[] = [];
+  const codeValidations: unknown[] = [];
+  let emValidation: unknown = null;
+  let payerChecks: unknown = null;
+
   for (const block of blocks) {
+    const classification = classifyComplianceBlock(block);
     const obj = block.json;
-    if (Array.isArray(obj)) {
-      issues.push(...obj.filter((item: any) => item?.severity || item?.category));
-    } else if (obj && typeof obj === 'object' && ((obj as any).severity || (obj as any).risk_id)) {
-      issues.push(obj);
+
+    if (classification === 'code_validation') {
+      if (Array.isArray(obj)) {
+        codeValidations.push(...obj);
+      } else {
+        codeValidations.push(obj);
+      }
+    } else if (classification === 'em_validation') {
+      emValidation = obj;
+    } else if (classification === 'payer_checks') {
+      payerChecks = obj;
+    } else if (classification === 'compliance_issue') {
+      if (Array.isArray(obj)) {
+        issues.push(...obj.filter((item: any) => item?.severity || item?.category));
+      } else if (obj && typeof obj === 'object' && ((obj as any).severity || (obj as any).risk_id)) {
+        issues.push(obj);
+      }
     }
+    // 'unknown' blocks with severity but NOT in a risk section are skipped
   }
 
-  if (!mdStatus && !mdRisk && issues.length === 0) return null;
+  if (!mdStatus && !mdRisk && issues.length === 0 && codeValidations.length === 0 && !emValidation && !payerChecks) return null;
 
   const result: Record<string, unknown> = {};
   if (mdStatus) result.overall_status = mdStatus.toLowerCase().replace(/\s+/g, '_');
   if (mdRisk) result.risk_level = mdRisk.toLowerCase();
   if (mdScoreStr) result.audit_readiness_score = parseInt(mdScoreStr, 10);
   if (issues.length > 0) result.compliance_issues = issues;
+  if (codeValidations.length > 0) result.code_validations = codeValidations;
+  if (emValidation) result.em_validation = emValidation;
+  if (payerChecks) result.payer_checks = payerChecks;
   return result;
 }
 
