@@ -154,6 +154,7 @@ function CollapsibleSection({ title, defaultOpen, className, children }: {
 function OverviewTab({ data }: Props) {
   const subj = data?.subjective;
   const obj = data?.objective;
+  const assess = data?.assessment;
   const plan = data?.plan;
   const keyFindings = data?.key_findings;
   const clinicalSummary = data?.clinical_summary;
@@ -183,6 +184,13 @@ function OverviewTab({ data }: Props) {
           <span className="r-overview-icon r-soap-o-icon">O</span>
           <span className="r-overview-label">Objective</span>
           <span className={`r-badge ${objStatus.cls}`}>{objStatus.label}</span>
+        </div>
+        <div className="r-overview-item">
+          <span className="r-overview-icon r-soap-a-icon">A</span>
+          <span className="r-overview-label">Assessment</span>
+          <span className={`r-badge ${assess?.length ? 'r-badge-green' : 'r-badge-gray'}`}>
+            {assess?.length ? `${assess.length} diagnoses` : 'Missing'}
+          </span>
         </div>
         <div className="r-overview-item">
           <span className="r-overview-icon r-soap-p-icon">P</span>
