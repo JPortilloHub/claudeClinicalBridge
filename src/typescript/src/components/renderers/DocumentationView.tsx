@@ -416,9 +416,9 @@ function DetailsTab({ data }: Props) {
               </div>
               {dx.differential_diagnosis_considered && Array.isArray(dx.differential_diagnosis_considered) && (
                 <div style={{ marginTop: '10px' }}>
-                  <strong style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Differential Diagnoses:</strong>
+                  <strong style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Differential Diagnoses:</strong>
                   {dx.differential_diagnosis_considered.map((dd: any, j: number) => (
-                    <div key={j} className="r-kv-row" style={{ padding: '4px 0', fontSize: '12px' }}>
+                    <div key={j} className="r-kv-row" style={{ padding: '4px 0', fontSize: '13px' }}>
                       <span className="r-kv-key" style={{ minWidth: '120px' }}>{dd.diagnosis}</span>
                       <span className={`r-badge ${dd.likelihood?.toLowerCase() === 'ruled out' ? 'r-badge-green' : 'r-badge-yellow'}`} style={{ fontSize: '10px' }}>
                         {dd.likelihood}

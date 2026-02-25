@@ -542,7 +542,7 @@ body {
   overflow: hidden;
 }
 .r-striped-row {
-  padding: 10px 14px;
+  padding: 10px 12px;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -733,7 +733,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px 18px;
+  padding: 14px 12px;
   margin-bottom: 10px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   transition: box-shadow 0.15s;
@@ -755,7 +755,7 @@ body {
   line-height: 1.6;
 }
 .r-card-note {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   font-style: italic;
   margin: 4px 0;
@@ -774,7 +774,7 @@ body {
 .r-pertinents { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .r-pertinent {
   display: inline-block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 6px;
@@ -983,7 +983,7 @@ body {
 }
 .r-kv-grid-nested .r-kv-row {
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .r-kv-grid-nested .r-kv-key {
   width: 140px;
@@ -996,8 +996,8 @@ body {
 .r-card > .r-mixed-list,
 .r-card > .r-striped-list,
 .r-card > .r-kv-grid {
-  margin-left: -18px;
-  margin-right: -18px;
+  margin-left: -12px;
+  margin-right: -12px;
   border-left: none;
   border-right: none;
   border-radius: 0;
