@@ -549,6 +549,17 @@ body {
 .r-striped-even { background: var(--surface); }
 .r-striped-odd { background: var(--bg); }
 
+.r-mixed-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.r-mixed-list-object {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.r-mixed-list-object:last-child { border-bottom: none; }
+
 .r-collapsible-header {
   display: flex;
   align-items: center;
@@ -1057,6 +1068,41 @@ body {
   font-style: italic;
   width: 100%;
   padding-left: 70px;
+}
+
+/* Codes table (Diagnosis / Procedure codes) */
+.r-codes-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.r-codes-table-header {
+  display: grid;
+  grid-template-columns: 100px 1fr 1fr;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.r-codes-table-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 1fr;
+  gap: 12px;
+  padding: 8px 14px;
+  font-size: 13px;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+.r-codes-table-row:last-child { border-bottom: none; }
+.r-codes-table-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* Quality measures */

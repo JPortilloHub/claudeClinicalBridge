@@ -46,15 +46,9 @@ function SmartValue({ value }: { value: any }) {
   if (typeof value === 'number') return <>{String(value)}</>;
 
   if (Array.isArray(value)) {
-    // Array of strings
+    // Array of strings — render as striped table (no bullets)
     if (value.every(v => typeof v === 'string')) {
-      return (
-        <ul className="r-list r-list-compact">
-          {value.map((item, i) => (
-            <li key={i}>{isDocGap(item) ? <DocGapLabel /> : item}</li>
-          ))}
-        </ul>
-      );
+      return <StripedList items={value} />;
     }
     // Array of objects
     return (
@@ -97,20 +91,37 @@ function KeyValueGrid({ obj, nested }: { obj: any; nested?: boolean }) {
 
 function BulletList({ items }: { items: any[] }) {
   if (!items || items.length === 0) return null;
+
+  // If all items are simple strings, render as a striped table (no bullets)
+  if (items.every(item => typeof item === 'string')) {
+    return <StripedList items={items as string[]} />;
+  }
+
+  // Mixed content: render objects as grids (no bullets), strings in striped rows
   return (
-    <ul className="r-list">
-      {items.map((item, i) => (
-        <li key={i}>
-          {typeof item === 'string' ? (
-            isDocGap(item) ? <DocGapLabel /> : item
-          ) : typeof item === 'object' && item !== null ? (
-            <SmartValue value={item} />
-          ) : (
-            String(item)
-          )}
-        </li>
-      ))}
-    </ul>
+    <div className="r-mixed-list">
+      {items.map((item, i) => {
+        if (typeof item === 'string') {
+          return (
+            <div key={i} className={`r-striped-row ${i % 2 === 0 ? 'r-striped-even' : 'r-striped-odd'}`}>
+              {isDocGap(item) ? <DocGapLabel /> : item}
+            </div>
+          );
+        }
+        if (typeof item === 'object' && item !== null) {
+          return (
+            <div key={i} className="r-mixed-list-object">
+              <SmartValue value={item} />
+            </div>
+          );
+        }
+        return (
+          <div key={i} className={`r-striped-row ${i % 2 === 0 ? 'r-striped-even' : 'r-striped-odd'}`}>
+            {String(item)}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -457,11 +468,7 @@ function GapCard({ gap, defaultOpen }: { gap: any; defaultOpen?: boolean }) {
           {Array.isArray(gap.missing_elements) && gap.missing_elements.length > 0 && (
             <div className="r-gap-card-missing">
               <strong>Missing Elements:</strong>
-              <ul className="r-list r-list-compact">
-                {gap.missing_elements.map((el: string, j: number) => (
-                  <li key={j}>{el}</li>
-                ))}
-              </ul>
+              <StripedList items={gap.missing_elements} />
             </div>
           )}
           {gap.impact && (
@@ -537,15 +544,20 @@ function CodingHintsSection({ hints }: { hints: any }) {
       {Array.isArray(diagnosisCodes) && diagnosisCodes.length > 0 && (
         <div style={{ marginTop: '12px' }}>
           <SectionLabel text="Diagnosis Codes" />
-          {diagnosisCodes.map((dc: any, i: number) => (
-            <div key={i} className="r-code-hint-item">
-              <span className="r-badge r-badge-blue">{dc.code}</span>
-              <span className="r-code-hint-desc">{dc.description}</span>
-              {(dc.note || dc.specificity) && (
-                <span className="r-code-hint-note">{dc.note || dc.specificity}</span>
-              )}
+          <div className="r-codes-table">
+            <div className="r-codes-table-header">
+              <span>Code</span>
+              <span>Description</span>
+              <span>Notes</span>
             </div>
-          ))}
+            {diagnosisCodes.map((dc: any, i: number) => (
+              <div key={i} className={`r-codes-table-row ${i % 2 === 0 ? 'r-striped-even' : 'r-striped-odd'}`}>
+                <span><span className="r-badge r-badge-blue">{dc.code}</span></span>
+                <span>{dc.description}</span>
+                <span className="r-codes-table-note">{dc.note || dc.specificity || '\u2014'}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -553,13 +565,20 @@ function CodingHintsSection({ hints }: { hints: any }) {
       {Array.isArray(procedureCodes) && procedureCodes.length > 0 && (
         <div style={{ marginTop: '12px' }}>
           <SectionLabel text="Procedure Codes" />
-          {procedureCodes.map((pc: any, i: number) => (
-            <div key={i} className="r-code-hint-item">
-              <span className="r-badge r-badge-blue">{pc.code}</span>
-              <span className="r-code-hint-desc">{pc.description}</span>
-              {pc.note && <span className="r-code-hint-note">{pc.note}</span>}
+          <div className="r-codes-table">
+            <div className="r-codes-table-header">
+              <span>Code</span>
+              <span>Description</span>
+              <span>Notes</span>
             </div>
-          ))}
+            {procedureCodes.map((pc: any, i: number) => (
+              <div key={i} className={`r-codes-table-row ${i % 2 === 0 ? 'r-striped-even' : 'r-striped-odd'}`}>
+                <span><span className="r-badge r-badge-blue">{pc.code}</span></span>
+                <span>{pc.description}</span>
+                <span className="r-codes-table-note">{pc.note || '\u2014'}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
