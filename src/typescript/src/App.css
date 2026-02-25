@@ -617,6 +617,7 @@ body {
   gap: 12px;
   padding: 8px 12px;
   font-size: 13px;
+  line-height: 1.5;
   background: var(--surface);
 }
 .r-kv-row:nth-child(odd) { background: #f8fafc; }
