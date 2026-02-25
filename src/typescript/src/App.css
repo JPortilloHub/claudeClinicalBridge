@@ -757,7 +757,7 @@ body {
 .r-card-note {
   font-size: 13px;
   color: var(--text-secondary);
-  font-style: italic;
+  font-style: normal;
   margin: 4px 0;
 }
 .r-card-remediation {
@@ -965,8 +965,8 @@ body {
   align-items: center;
   gap: 4px;
   color: #d97706;
-  font-size: 12px;
-  font-style: italic;
+  font-size: 13px;
+  font-style: normal;
   font-weight: 500;
 }
 .r-doc-gap-icon {
@@ -1056,7 +1056,7 @@ body {
 .r-gap-card-header:hover { background: #f5f5f5; }
 .r-gap-card-chevron {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   width: 16px;
   flex-shrink: 0;
 }
@@ -1072,14 +1072,14 @@ body {
   background: #fffdf7;
 }
 .r-gap-card-missing { margin-bottom: 10px; }
-.r-gap-card-missing strong { font-size: 12px; color: var(--text-secondary); }
+.r-gap-card-missing strong { font-size: 13px; color: var(--text-secondary); }
 .r-gap-card-impact {
   font-size: 13px;
   color: #92400e;
-  font-style: italic;
+  font-style: normal;
   line-height: 1.5;
 }
-.r-gap-card-impact strong { font-style: normal; font-size: 12px; color: var(--text-secondary); }
+.r-gap-card-impact strong { font-style: normal; font-size: 13px; color: var(--text-secondary); }
 
 /* Coding hints section */
 .r-code-hint-item {
@@ -1092,9 +1092,9 @@ body {
 }
 .r-code-hint-desc { flex: 1; min-width: 200px; }
 .r-code-hint-note {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-secondary);
-  font-style: italic;
+  font-style: normal;
   width: 100%;
   padding-left: 70px;
 }
@@ -1129,9 +1129,9 @@ body {
 }
 .r-codes-table-row:last-child { border-bottom: none; }
 .r-codes-table-note {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  font-style: italic;
+  font-style: normal;
 }
 
 /* Quality measures */
@@ -1152,7 +1152,7 @@ body {
 .r-qm-partial .r-qm-icon { color: #d97706; }
 .r-qm-not-met .r-qm-icon { color: #dc2626; }
 .r-qm-measure { flex: 1; font-weight: 500; }
-.r-qm-status { font-size: 11px; color: var(--text-secondary); font-style: italic; max-width: 50%; text-align: right; }
+.r-qm-status { font-size: 13px; color: var(--text-secondary); font-style: normal; max-width: 50%; text-align: right; }
 
 /* Success empty state */
 .r-empty-success {

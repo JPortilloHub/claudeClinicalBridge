@@ -242,11 +242,11 @@ function OverviewTab({ data }: Props) {
             {keyFindings?.coding_recommendations && keyFindings.coding_recommendations.length > 0 && (
               <div className="r-alert r-alert-info">
                 <h5>Coding Optimization</h5>
-                <ul className="r-list">
+                <ol className="r-list r-list-numbered">
                   {keyFindings.coding_recommendations.map((rec: string, i: number) => (
                     <li key={i}>{rec}</li>
                   ))}
-                </ul>
+                </ol>
               </div>
             )}
           </div>
