@@ -555,10 +555,15 @@ body {
   overflow: hidden;
 }
 .r-mixed-list-object {
-  padding: 10px 14px;
+  padding: 0;
   border-bottom: 1px solid var(--border);
 }
 .r-mixed-list-object:last-child { border-bottom: none; }
+.r-mixed-list-object .r-kv-grid {
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+}
 
 .r-collapsible-header {
   display: flex;
@@ -618,8 +623,12 @@ body {
 .r-kv-key {
   font-weight: 700;
   color: var(--text-secondary);
-  min-width: 160px;
+  width: 180px;
+  min-width: 180px;
+  flex-shrink: 0;
   text-transform: capitalize;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 .r-kv-value { color: var(--text); flex: 1; min-width: 0; word-wrap: break-word; overflow-wrap: break-word; }
 
@@ -968,7 +977,7 @@ body {
 /* Nested KV grid */
 .r-kv-grid-nested {
   border: none;
-  margin-left: 16px;
+  margin-left: 0;
   margin-bottom: 4px;
   background: transparent;
 }
@@ -977,10 +986,30 @@ body {
   font-size: 12px;
 }
 .r-kv-grid-nested .r-kv-key {
-  min-width: 120px;
+  width: 140px;
+  min-width: 140px;
 }
-.r-kv-nested { margin-left: 8px; }
+.r-kv-nested { margin-left: 0; }
 .r-kv-nested-item { margin-bottom: 6px; }
+
+/* Tables inside cards: stretch to card edges */
+.r-card > .r-mixed-list,
+.r-card > .r-striped-list,
+.r-card > .r-kv-grid {
+  margin-left: -18px;
+  margin-right: -18px;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+}
+.r-card > .r-mixed-list:last-child,
+.r-card > .r-striped-list:last-child,
+.r-card > .r-kv-grid:last-child {
+  margin-bottom: -14px;
+  border-bottom: none;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
 
 /* Key findings section */
 .r-key-findings { margin-top: 16px; }
