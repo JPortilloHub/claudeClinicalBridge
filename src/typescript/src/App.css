@@ -606,7 +606,7 @@ body {
 .r-kv-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2px;
+  gap: 0;
   margin-bottom: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
