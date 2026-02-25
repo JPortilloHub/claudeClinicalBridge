@@ -114,15 +114,46 @@ function BulletList({ items }: { items: any[] }) {
   );
 }
 
+function StripedList({ items }: { items: string[] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="r-striped-list">
+      {items.map((item, i) => (
+        <div key={i} className={`r-striped-row ${i % 2 === 0 ? 'r-striped-even' : 'r-striped-odd'}`}>
+          {isDocGap(item) ? <DocGapLabel /> : item}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SectionLabel({ text }: { text: string }) {
   return <h5 className="r-sub-label">{text}</h5>;
+}
+
+/** Collapsible section with clickable header and chevron */
+function CollapsibleSection({ title, defaultOpen, className, children }: {
+  title: string;
+  defaultOpen?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  return (
+    <div className={`r-section ${className || ''}`}>
+      <div className="r-collapsible-header" onClick={() => setIsOpen(!isOpen)}>
+        <span className="r-collapsible-chevron">{isOpen ? '\u25BE' : '\u25B8'}</span>
+        <h4 className="r-section-title" style={{ margin: 0 }}>{title}</h4>
+      </div>
+      {isOpen && children}
+    </div>
+  );
 }
 
 /* ── Overview tab ─────────────────────────────────────────────── */
 function OverviewTab({ data }: Props) {
   const subj = data?.subjective;
   const obj = data?.objective;
-  const assess = data?.assessment;
   const plan = data?.plan;
   const keyFindings = data?.key_findings;
   const clinicalSummary = data?.clinical_summary;
@@ -152,13 +183,6 @@ function OverviewTab({ data }: Props) {
           <span className="r-overview-icon r-soap-o-icon">O</span>
           <span className="r-overview-label">Objective</span>
           <span className={`r-badge ${objStatus.cls}`}>{objStatus.label}</span>
-        </div>
-        <div className="r-overview-item">
-          <span className="r-overview-icon r-soap-a-icon">A</span>
-          <span className="r-overview-label">Assessment</span>
-          <span className={`r-badge ${assess?.length ? 'r-badge-green' : 'r-badge-gray'}`}>
-            {assess?.length ? `${assess.length} diagnoses` : 'Missing'}
-          </span>
         </div>
         <div className="r-overview-item">
           <span className="r-overview-icon r-soap-p-icon">P</span>
@@ -210,25 +234,6 @@ function OverviewTab({ data }: Props) {
         </div>
       )}
 
-      {/* Assessment summary cards */}
-      {Array.isArray(assess) && assess.length > 0 && (
-        <div className="r-section">
-          <h4 className="r-section-title">Assessment Summary</h4>
-          {assess.map((dx: any, i: number) => (
-            <div key={i} className="r-card">
-              <div className="r-card-header">
-                {(dx.icd10_hint || dx.icd10_code) && (
-                  <span className="r-badge r-badge-blue">{dx.icd10_hint || dx.icd10_code}</span>
-                )}
-                <strong>{dx.diagnosis || `Diagnosis ${i + 1}`}</strong>
-              </div>
-              {dx.clinical_reasoning && (
-                <p className="r-card-detail">{dx.clinical_reasoning}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -244,9 +249,7 @@ function DetailsTab({ data }: Props) {
     <div className="r-tab-inner">
       {/* SUBJECTIVE */}
       {subj && (
-        <div className="r-section r-soap-s">
-          <h4 className="r-section-title">Subjective</h4>
-
+        <CollapsibleSection title="Subjective" className="r-soap-s">
           {subj.chief_complaint && (
             <div className="r-highlight-box">
               <span className="r-label">Chief Complaint</span>
@@ -271,7 +274,7 @@ function DetailsTab({ data }: Props) {
           {subj.pmh && subj.pmh.length > 0 && (
             <>
               <SectionLabel text="Past Medical History" />
-              <BulletList items={subj.pmh} />
+              <StripedList items={subj.pmh} />
             </>
           )}
 
@@ -300,7 +303,7 @@ function DetailsTab({ data }: Props) {
             {subj.medications && subj.medications.length > 0 && (
               <div className="r-inline-list-item">
                 <SectionLabel text="Medications" />
-                <BulletList items={subj.medications} />
+                <StripedList items={subj.medications} />
               </div>
             )}
             {subj.allergies && subj.allergies.length > 0 && (
@@ -310,14 +313,12 @@ function DetailsTab({ data }: Props) {
               </div>
             )}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* OBJECTIVE */}
       {obj && (
-        <div className="r-section r-soap-o">
-          <h4 className="r-section-title">Objective</h4>
-
+        <CollapsibleSection title="Objective" className="r-soap-o">
           {obj.vitals && typeof obj.vitals === 'object' && (
             <>
               <SectionLabel text="Vital Signs" />
@@ -354,13 +355,12 @@ function DetailsTab({ data }: Props) {
               <BulletList items={obj.imaging} />
             </>
           )}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* ASSESSMENT */}
       {assess && Array.isArray(assess) && assess.length > 0 && (
-        <div className="r-section r-soap-a">
-          <h4 className="r-section-title">Assessment</h4>
+        <CollapsibleSection title="Assessment" className="r-soap-a">
           {assess.map((dx: any, i: number) => (
             <div key={i} className="r-card">
               <div className="r-card-header">
@@ -410,13 +410,12 @@ function DetailsTab({ data }: Props) {
               )}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* PLAN */}
       {plan && Array.isArray(plan) && plan.length > 0 && (
-        <div className="r-section r-soap-p">
-          <h4 className="r-section-title">Plan</h4>
+        <CollapsibleSection title="Plan" className="r-soap-p">
           {plan.map((item: any, i: number) => (
             <div key={i} className="r-card">
               <div className="r-card-header">
@@ -425,7 +424,7 @@ function DetailsTab({ data }: Props) {
               {item.actions && <BulletList items={item.actions} />}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
     </div>
   );
@@ -581,11 +580,7 @@ function CodingHintsSection({ hints }: { hints: any }) {
       {Array.isArray(complianceConsiderations) && complianceConsiderations.length > 0 && (
         <div style={{ marginTop: '12px' }}>
           <SectionLabel text="Compliance Considerations" />
-          <ul className="r-list">
-            {complianceConsiderations.map((cc: string, i: number) => (
-              <li key={i}>{cc}</li>
-            ))}
-          </ul>
+          <StripedList items={complianceConsiderations} />
         </div>
       )}
     </div>

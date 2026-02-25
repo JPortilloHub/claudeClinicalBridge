@@ -521,7 +521,7 @@ body {
   padding: 16px 16px 16px 20px;
   border-left: 4px solid var(--border);
   background: var(--bg);
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-radius: 10px;
 }
 .r-section:last-child { margin-bottom: 0; }
 
@@ -534,6 +534,41 @@ body {
   margin-bottom: 14px;
   padding-bottom: 8px;
   border-bottom: 2px solid var(--border);
+}
+
+.r-striped-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.r-striped-row {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.r-striped-even { background: var(--surface); }
+.r-striped-odd { background: var(--bg); }
+
+.r-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  border-radius: var(--radius);
+}
+.r-collapsible-header:hover { background: #f1f5f9; }
+.r-collapsible-header .r-section-title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.r-collapsible-chevron {
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
 .r-sub-label {
@@ -961,7 +996,7 @@ body {
 .r-doc-gaps-section { display: flex; flex-direction: column; gap: 8px; }
 .r-gap-card {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--surface);
   transition: box-shadow 0.15s;
@@ -1030,7 +1065,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   margin-bottom: 4px;
   font-size: 13px;
 }
