@@ -202,52 +202,78 @@ export function parseClinicalDocumentation(raw: string | object): PhaseViewModel
 
   try {
     const result = DocumentationSchema.safeParse(json);
-    const data = result.success ? result.data : json as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data = (result.success ? result.data : json) as any;
 
     const kpis: KPIItem[] = [];
-    const subjective = (data as Record<string, unknown>)?.subjective as Record<string, unknown> | undefined;
+    const subjective = data?.subjective;
     const chiefComplaint = subjective?.chief_complaint as string | undefined;
     if (chiefComplaint) {
       kpis.push({ label: 'Chief Complaint', value: chiefComplaint });
     }
 
-    const assessment = (data as Record<string, unknown>)?.assessment;
+    const assessment = data?.assessment;
     if (Array.isArray(assessment)) {
       kpis.push({ label: 'Diagnoses', value: assessment.length, color: 'blue' });
     }
 
-    const gaps = (data as Record<string, unknown>)?.documentation_gaps;
+    const gaps = data?.documentation_gaps;
     if (Array.isArray(gaps) && gaps.length > 0) {
       kpis.push({ label: 'Doc Gaps', value: gaps.length, color: 'yellow' });
     } else {
       kpis.push({ label: 'Doc Gaps', value: 0, color: 'green' });
     }
 
-    const plan = (data as Record<string, unknown>)?.plan;
+    const plan = data?.plan;
     if (Array.isArray(plan)) {
       kpis.push({ label: 'Plan Items', value: plan.length, color: 'blue' });
     }
 
     addTruncationWarning(kpis, wasTruncated);
 
+    // Extract "Summary of Key Findings" from markdown prose after the JSON block
+    if (typeof raw === 'string' && !data.key_findings) {
+      const keyFindings: Record<string, unknown> = {};
+      const clinicalProblemMatch = raw.match(/###\s*Clinical Problem Representation\s*\n+\*\*([\s\S]*?)\*\*/);
+      if (clinicalProblemMatch) {
+        keyFindings.clinical_problem = clinicalProblemMatch[1].trim();
+      }
+      const criticalGapsMatch = raw.match(/###\s*Most Critical Documentation Gaps\s*\n+([\s\S]*?)(?=\n###|\n##|$)/);
+      if (criticalGapsMatch) {
+        const lines = criticalGapsMatch[1].split('\n')
+          .filter(l => /^\d+\.\s+/.test(l.trim()))
+          .map(l => l.replace(/^\d+\.\s+/, '').replace(/\*\*/g, '').trim());
+        if (lines.length > 0) keyFindings.critical_gaps = lines;
+      }
+      const codingRecsMatch = raw.match(/###\s*Coding Optimization Recommendations\s*\n+([\s\S]*?)(?=\n###|\n##|$)/);
+      if (codingRecsMatch) {
+        const lines = codingRecsMatch[1].split('\n')
+          .filter(l => /^[-*]\s+/.test(l.trim()))
+          .map(l => l.replace(/^[-*]\s+/, '').replace(/\*\*/g, '').trim());
+        if (lines.length > 0) keyFindings.coding_recommendations = lines;
+      }
+      if (Object.keys(keyFindings).length > 0) {
+        data = { ...data, key_findings: keyFindings };
+      }
+    }
+
     const summary = chiefComplaint
       ? `SOAP note for: ${chiefComplaint}`
       : 'Clinical documentation structured as SOAP note';
 
-    const d = data as Record<string, unknown>;
     return {
       status: 'completed',
       summary: wasTruncated ? summary + ' (partial output)' : summary,
       kpis,
       sections: [
-        { title: 'Subjective', content: d?.subjective },
-        { title: 'Objective', content: d?.objective },
-        { title: 'Assessment', content: d?.assessment },
-        { title: 'Plan', content: d?.plan },
-        { title: 'Documentation Gaps', content: d?.documentation_gaps },
-        { title: 'Coding Hints', content: d?.coding_hints },
+        { title: 'Subjective', content: data?.subjective },
+        { title: 'Objective', content: data?.objective },
+        { title: 'Assessment', content: data?.assessment },
+        { title: 'Plan', content: data?.plan },
+        { title: 'Documentation Gaps', content: data?.documentation_gaps },
+        { title: 'Coding Hints', content: data?.coding_hints },
       ].filter(s => s.content != null),
-      raw: json,
+      raw: data,
     };
   } catch (e) {
     return buildFallback(raw, e instanceof Error ? e.message : 'Parse error');
