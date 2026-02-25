@@ -983,7 +983,7 @@ body {
   background: transparent;
 }
 .r-kv-grid-nested .r-kv-row {
-  padding: 4px 8px;
+  padding: 8px 12px;
   font-size: 13px;
 }
 .r-kv-grid-nested .r-kv-key {
