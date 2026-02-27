@@ -216,6 +216,10 @@ class Settings(BaseSettings):
         default=30,
         description="Target latency for end-to-end workflow in seconds",
     )
+    agent_max_tokens: int = Field(
+        default=16384,
+        description="Maximum tokens for agent LLM responses",
+    )
 
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(

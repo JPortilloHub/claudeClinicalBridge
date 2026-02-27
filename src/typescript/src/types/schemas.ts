@@ -60,7 +60,7 @@ export const DocumentationSchema = z.object({
     diagnosis: z.string().optional(),
     actions: z.array(z.string()).optional(),
   })).optional(),
-  documentation_gaps: z.array(z.string()).optional(),
+  documentation_gaps: z.array(z.union([z.string(), z.object({}).passthrough()])).optional(),
   coding_hints: z.record(z.string(), z.unknown()).optional(),
 }).passthrough();
 
@@ -77,6 +77,8 @@ export const CodingSchema = z.object({
     rationale: z.string().optional(),
     specificity_check: z.string().optional(),
     modifiers: z.array(z.string()).optional(),
+    supporting_documentation: z.array(z.string()).optional(),
+    excludes_conflicts: z.string().optional(),
   })).optional(),
   procedures: z.array(z.object({
     code: z.string().optional(),
@@ -122,7 +124,7 @@ export const ComplianceSchema = z.object({
     category: z.string().optional(),
     description: z.string().optional(),
     regulatory_reference: z.string().optional(),
-    remediation: z.string().optional(),
+    remediation: z.union([z.string(), z.array(z.string())]).optional(),
   })).optional(),
   payer_checks: z.object({
     prior_auth_required: z.boolean().optional(),

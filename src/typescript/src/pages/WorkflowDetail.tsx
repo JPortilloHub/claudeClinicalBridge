@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getWorkflow, runPhase, approvePhase } from '../api/workflows';
 import type { WorkflowDetail as WorkflowType } from '../types/api';
-import PhaseCard from '../components/PhaseCard';
+import ClinicalNotePane from '../components/ClinicalNotePane';
+import PhaseStepper from '../components/PhaseStepper';
+import PhaseContentPanel from '../components/PhaseContentPanel';
 
 const PHASE_ORDER = ['documentation', 'coding', 'compliance', 'prior_auth', 'quality_assurance'];
 const PHASE_LABELS: Record<string, string> = {
@@ -20,6 +22,10 @@ export default function WorkflowDetail() {
   const [error, setError] = useState('');
   const isPolling = useRef(false);
 
+  const [activePhase, setActivePhase] = useState<string>(PHASE_ORDER[0]);
+  const [noteCollapsed, setNoteCollapsed] = useState(false);
+  const userSelectedPhase = useRef(false);
+
   const fetchWorkflow = useCallback(async () => {
     if (!id) return;
     try {
@@ -27,7 +33,10 @@ export default function WorkflowDetail() {
       setWorkflow(data);
       setError('');
 
-      // Start or stop polling based on whether any phase is running
+      if (!userSelectedPhase.current && data.current_phase) {
+        setActivePhase(data.current_phase);
+      }
+
       const hasRunning = data.phase_results.some((p) => p.status === 'running');
       isPolling.current = hasRunning;
     } catch {
@@ -37,19 +46,16 @@ export default function WorkflowDetail() {
     }
   }, [id]);
 
-  // Initial fetch
   useEffect(() => {
     fetchWorkflow();
   }, [fetchWorkflow]);
 
-  // Polling interval — always runs but only fetches when isPolling is true
   useEffect(() => {
     const interval = setInterval(() => {
       if (isPolling.current) {
         fetchWorkflow();
       }
     }, 3000);
-
     return () => clearInterval(interval);
   }, [fetchWorkflow]);
 
@@ -68,11 +74,25 @@ export default function WorkflowDetail() {
     if (!id) return;
     try {
       await approvePhase(id, phaseName);
+      userSelectedPhase.current = false;
       await fetchWorkflow();
     } catch {
       setError(`Failed to approve phase: ${phaseName}`);
     }
   };
+
+  const handleSelectPhase = (name: string) => {
+    userSelectedPhase.current = true;
+    setActivePhase(name);
+  };
+
+  // Filter out prior_auth when skipped (Req 1)
+  const visiblePhases = useMemo(() => {
+    if (!workflow) return PHASE_ORDER;
+    return workflow.skip_prior_auth
+      ? PHASE_ORDER.filter((p) => p !== 'prior_auth')
+      : PHASE_ORDER;
+  }, [workflow]);
 
   if (loading) return <div className="loading">Loading workflow...</div>;
   if (error && !workflow) return <div className="error-message">{error}</div>;
@@ -82,57 +102,60 @@ export default function WorkflowDetail() {
     workflow.phase_results.map((p) => [p.phase_name, p])
   );
 
+  const steps = visiblePhases.map((name) => ({
+    name,
+    label: PHASE_LABELS[name],
+    status: phaseMap[name]?.status || 'pending',
+  }));
+
+  const currentPhaseResult = phaseMap[activePhase];
+  const shortId = id ? id.slice(0, 8) : '';
+
   return (
-    <div className="workflow-detail">
-      <header className="workflow-detail-header">
-        <Link to="/" className="back-link">&larr; Back to Workflows</Link>
-        <div className="workflow-title">
-          <h1>Workflow</h1>
-          <span className={`status-badge status-${workflow.status}`}>
-            {workflow.status.replace('_', ' ')}
-          </span>
+    <div className="wd-container">
+      <ClinicalNotePane
+        workflow={workflow}
+        collapsed={noteCollapsed}
+        onToggleCollapse={() => setNoteCollapsed(!noteCollapsed)}
+      />
+
+      <div className="wd-content-pane">
+        {/* Header bar */}
+        <div className="wd-header">
+          <div className="wd-header-left">
+            <Link to="/" className="wd-back-btn">&larr; Back</Link>
+            <h2 className="wd-title">Workflow <span className="wd-title-id">#{shortId}</span></h2>
+            <span className={`status-badge status-${workflow.status}`}>
+              {workflow.status.replace('_', ' ')}
+            </span>
+          </div>
         </div>
-        {workflow.total_input_tokens + workflow.total_output_tokens > 0 && (
-          <div className="workflow-stats">
-            Tokens: {(workflow.total_input_tokens + workflow.total_output_tokens).toLocaleString()}
+
+        {error && <div className="error-message" style={{ margin: '0 24px', marginTop: '12px' }}>{error}</div>}
+
+        <PhaseStepper
+          phases={steps}
+          activePhase={activePhase}
+          onSelectPhase={handleSelectPhase}
+        />
+
+        {currentPhaseResult ? (
+          <PhaseContentPanel
+            key={activePhase}
+            phase={currentPhaseResult}
+            label={PHASE_LABELS[activePhase]}
+            workflowId={id!}
+            isCurrentPhase={workflow.current_phase === activePhase}
+            onRun={() => handleRunPhase(activePhase)}
+            onApprove={() => handleApprovePhase(activePhase)}
+            onContentUpdated={fetchWorkflow}
+          />
+        ) : (
+          <div className="wd-phase-content-scroll">
+            <div className="empty-state">Phase not available</div>
           </div>
         )}
-      </header>
-
-      {error && <div className="error-message">{error}</div>}
-
-      <section className="raw-note-section">
-        <h2>Clinical Note</h2>
-        <pre className="raw-note">{workflow.raw_note}</pre>
-        <div className="note-meta">
-          {workflow.patient_id && <span>Patient: {workflow.patient_id}</span>}
-          {workflow.payer && <span>Payer: {workflow.payer}</span>}
-          {workflow.procedure && <span>Procedure: {workflow.procedure}</span>}
-        </div>
-      </section>
-
-      <section className="phases-section">
-        <h2>Pipeline Phases</h2>
-        <div className="phase-list">
-          {PHASE_ORDER.map((phaseName) => {
-            const phase = phaseMap[phaseName];
-            if (!phase) return null;
-
-            return (
-              <PhaseCard
-                key={phaseName}
-                phase={phase}
-                label={PHASE_LABELS[phaseName]}
-                workflowId={id!}
-                isCurrentPhase={workflow.current_phase === phaseName}
-                onRun={() => handleRunPhase(phaseName)}
-                onApprove={() => handleApprovePhase(phaseName)}
-                onContentUpdated={fetchWorkflow}
-              />
-            );
-          })}
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

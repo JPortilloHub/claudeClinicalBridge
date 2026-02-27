@@ -1,9 +1,15 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { logout, getStoredUser } from '../api/auth';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getStoredUser();
+
+  // Workflow detail pages need full viewport width for split-pane layout
+  const isWorkflowDetail =
+    /^\/workflows\/[^/]+$/.test(location.pathname) &&
+    location.pathname !== '/workflows/new';
 
   const handleLogout = () => {
     logout();
@@ -23,7 +29,7 @@ export default function Layout() {
           </button>
         </div>
       </nav>
-      <main className="app-main">
+      <main className={`app-main ${isWorkflowDetail ? 'app-main--full-width' : ''}`}>
         <Outlet />
       </main>
     </div>

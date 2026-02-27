@@ -73,7 +73,7 @@ function OverviewTab({ data }: Props) {
           <h4 className="r-section-title">Issue Summary</h4>
           <div className="r-issue-summary-row">
             {(['critical', 'warning', 'info'] as const).map(severity => {
-              const count = issues.filter((i: any) => i.severity === severity).length;
+              const count = issues.filter((i: any) => i.severity?.toLowerCase() === severity).length;
               if (count === 0) return null;
               return (
                 <div key={severity} className="r-issue-summary-item">
@@ -98,6 +98,18 @@ function DetailsTab({ data }: Props) {
   const codeVals = data?.code_validations || [];
   const emVal = data?.em_validation;
   const payer = data?.payer_checks;
+  const hasStructuredDetails = codeVals.length > 0 || emVal || payer;
+  const issues = data?.compliance_issues || [];
+
+  // Group issues by category for fallback display
+  const groupedIssues: Record<string, any[]> = {};
+  if (!hasStructuredDetails && issues.length > 0) {
+    for (const issue of issues) {
+      const cat = issue.category?.replace(/_/g, ' ') || 'General';
+      if (!groupedIssues[cat]) groupedIssues[cat] = [];
+      groupedIssues[cat].push(issue);
+    }
+  }
 
   return (
     <div className="r-tab-inner">
@@ -107,8 +119,8 @@ function DetailsTab({ data }: Props) {
           <h4 className="r-section-title">Code Validations</h4>
           {codeVals.map((cv: any, i: number) => (
             <div key={i} className="r-validation-row">
-              <span className={cv.status === 'pass' ? 'r-icon-pass' : 'r-icon-fail'}>
-                {cv.status === 'pass' ? '\u2713' : '\u2717'}
+              <span className={cv.status?.toLowerCase() === 'pass' ? 'r-icon-pass' : 'r-icon-fail'}>
+                {cv.status?.toLowerCase() === 'pass' ? '\u2713' : '\u2717'}
               </span>
               <span className="r-code-value r-code-value-sm">{cv.code}</span>
               <span className="r-validation-text">
@@ -134,7 +146,7 @@ function DetailsTab({ data }: Props) {
                 <span className="r-label">Supported</span>
                 <span className="r-code-value r-code-value-sm">{emVal.supported_level || '\u2014'}</span>
               </div>
-              <span className={`r-badge ${emVal.status === 'pass' ? 'r-badge-green' : 'r-badge-red'}`}>
+              <span className={`r-badge ${emVal.status?.toLowerCase() === 'pass' ? 'r-badge-green' : 'r-badge-red'}`}>
                 {emVal.status || '\u2014'}
               </span>
             </div>
@@ -175,6 +187,48 @@ function DetailsTab({ data }: Props) {
           )}
         </div>
       )}
+
+      {/* Fallback: show issues grouped by category when no structured details available */}
+      {!hasStructuredDetails && issues.length > 0 && (
+        <div className="r-section">
+          <p className="r-note" style={{ marginBottom: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+            Detailed code validations not available — showing compliance issues summary.
+          </p>
+          {Object.entries(groupedIssues).map(([category, catIssues]) => (
+            <div key={category} className="r-section" style={{ marginBottom: '16px' }}>
+              <h4 className="r-section-title">{category}</h4>
+              {catIssues.map((issue: any, i: number) => (
+                <div key={i} className="r-card" style={{ marginBottom: '8px' }}>
+                  <div className="r-card-header">
+                    {issue.severity && <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity}</span>}
+                  </div>
+                  {issue.description && <p className="r-card-detail">{issue.description}</p>}
+                  {issue.regulatory_reference && (
+                    <p className="r-card-note"><strong>Reference:</strong> {issue.regulatory_reference}</p>
+                  )}
+                  {issue.remediation && (
+                    Array.isArray(issue.remediation) ? (
+                      <div className="r-card-remediation">
+                        <strong>Fix:</strong>
+                        <ul className="r-list r-list-compact">
+                          {issue.remediation.map((r: string, j: number) => <li key={j}>{r}</li>)}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
+                    )
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!hasStructuredDetails && issues.length === 0 && (
+        <div className="r-empty-success">No detailed validation data available</div>
+      )}
     </div>
   );
 }
@@ -185,7 +239,7 @@ function IssuesTab({ data }: Props) {
 
   const sortedIssues = [...issues].sort((a: any, b: any) => {
     const order: Record<string, number> = { critical: 0, warning: 1, info: 2 };
-    return (order[a.severity] ?? 3) - (order[b.severity] ?? 3);
+    return (order[a.severity?.toLowerCase()] ?? 3) - (order[b.severity?.toLowerCase()] ?? 3);
   });
 
   if (sortedIssues.length === 0) {
@@ -199,9 +253,9 @@ function IssuesTab({ data }: Props) {
   return (
     <div className="r-tab-inner">
       {sortedIssues.map((issue: any, i: number) => (
-        <div key={i} className={`r-card r-issue-card r-issue-${issue.severity || 'info'}`}>
+        <div key={i} className={`r-card r-issue-card r-issue-${issue.severity?.toLowerCase() || 'info'}`}>
           <div className="r-card-header">
-            <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity}</span>
+            <span className={`r-badge ${severityBadge(issue.severity)}`}>{issue.severity?.toLowerCase()}</span>
             {issue.category && <span className="r-badge r-badge-gray">{issue.category?.replace(/_/g, ' ')}</span>}
           </div>
           <p className="r-card-detail">{issue.description}</p>
@@ -209,7 +263,16 @@ function IssuesTab({ data }: Props) {
             <p className="r-card-note"><strong>Reference:</strong> {issue.regulatory_reference}</p>
           )}
           {issue.remediation && (
-            <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
+            Array.isArray(issue.remediation) ? (
+              <div className="r-card-remediation">
+                <strong>Fix:</strong>
+                <ul className="r-list r-list-compact">
+                  {issue.remediation.map((r: string, j: number) => <li key={j}>{r}</li>)}
+                </ul>
+              </div>
+            ) : (
+              <p className="r-card-remediation"><strong>Fix:</strong> {issue.remediation}</p>
+            )
           )}
         </div>
       ))}
@@ -231,7 +294,7 @@ export default function ComplianceView({ data }: Props) {
         {
           label: 'Issues',
           count: issues.length,
-          content: <IssuesTab data={data} />,
+          content: issues.length > 0 ? <IssuesTab data={data} /> : null,
         },
       ]} />
     </div>
